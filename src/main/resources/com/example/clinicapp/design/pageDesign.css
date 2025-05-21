@@ -1,0 +1,15 @@
+.white-bg {
+    -fx-background-color: #fff;
+}
+
+.radius {
+    -fx-background-radius: 5px;
+}
+
+.textfield-1 {
+
+}
+.icon-design {
+    -fx-scale-x: 2;
+    -fx-scale-y: 2;
+}
