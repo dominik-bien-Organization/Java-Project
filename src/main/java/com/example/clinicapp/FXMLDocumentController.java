@@ -1,8 +1,13 @@
 package com.example.clinicapp;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -10,13 +15,16 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
+import javafx.stage.Stage;
 
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.List;
 
 public class FXMLDocumentController implements Initializable {
 
@@ -27,7 +35,7 @@ public class FXMLDocumentController implements Initializable {
     private CheckBox login_checkbox;
 
     @FXML
-    private ComboBox<?> login_combobox;
+    private ComboBox<String> login_combobox;
 
     @FXML
     private AnchorPane login_form;
@@ -36,10 +44,13 @@ public class FXMLDocumentController implements Initializable {
     private PasswordField login_password;
 
     @FXML
-    private Hyperlink login_signIn;
+    private Hyperlink login_registerHere;
 
     @FXML
     private TextField login_username;
+
+    @FXML
+    private TextField login_showPassword;
 
     @FXML
     private AnchorPane main_form;
@@ -75,59 +86,118 @@ public class FXMLDocumentController implements Initializable {
     private AlertMessage alert = new AlertMessage();
 
 
+    public void loginAccount() {
+        String username = login_username.getText();
+        String password;
+
+        if (login_checkbox.isSelected()) {
+
+            password = login_showPassword.getText();
+        } else {
+
+            password = login_password.getText();
+        }
+
+        if (username.isEmpty() || password.isEmpty()) {
+            alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
+        } else {
+            String sql = "SELECT * FROM admin WHERE username = ? AND password = ?";
+
+            connect = Database.connectDb();
+
+            try {
+                prepare = connect.prepareStatement(sql);
+                prepare.setString(1, username);
+                prepare.setString(2, password);
+                result = prepare.executeQuery();
+
+                if (result.next()) {
+                    alert.successMessage("Logowanie wykonano pomyślnie!");
+
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("ClinicSystemPage.fxml"));
+                    Parent root = loader.load();
+
+
+                    Stage stage = (Stage) login_button.getScene().getWindow();
+
+
+                    stage.setScene(new Scene(root));
+                    stage.setTitle("Clinic System");
+                    stage.show();
+
+
+                } else {
+                    alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
     public void registerAccount() {
-        if (register_email.getText().isEmpty()
-                || register_username.getText().isEmpty()
-                || register_password.getText().isEmpty()) {
+        String email = register_email.getText();
+        String username = register_username.getText();
+        String password;
+
+
+        if (register_showPassword.isVisible()) {
+            password = register_showPassword.getText();
+        } else {
+            password = register_password.getText();
+        }
+
+        if (email.isEmpty() || username.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Proszę uzupełnić wszystkie wymagane pola");
             return;
         }
 
         try {
-            if (!register_showPassword.isVisible()) {
-                if (!register_showPassword.getText().equals(register_password.getText())) {
-                    register_showPassword.setText(register_password.getText());
-                }
-            }
-            else {
-                if (!register_showPassword.getText().equals(register_password.getText())) {
-                    register_password.setText(register_password.getText());
-                }
-
-            }
             String checkUsername = "SELECT * FROM admin WHERE username = ?";
             connect = Database.connectDb();
             prepare = connect.prepareStatement(checkUsername);
-            prepare.setString(1, register_username.getText());
+            prepare.setString(1, username);
             result = prepare.executeQuery();
 
             if (result.next()) {
-                alert.errorMessage("Użytkownik " + register_username.getText() + " już istnieje w bazie danych.");
-            } else if (register_password.getText().length() < 8) {
-                alert.errorMessage(("Hasło nieprawidłowe. Musi mieć przynajmniej 8 znaków")); //check password length
-            }else {
-
-                //Insert user to the database
+                alert.errorMessage("Użytkownik " + username + " już istnieje w bazie danych.");
+            } else if (password.length() < 8) {
+                alert.errorMessage("Hasło nieprawidłowe. Musi mieć przynajmniej 8 znaków");
+            } else {
                 String insertData = "INSERT INTO admin (email, username, password, date) VALUES (?, ?, ?, ?)";
                 prepare = connect.prepareStatement(insertData);
                 java.sql.Date sqlDate = new java.sql.Date(new Date().getTime());
 
-                prepare.setString(1, register_email.getText());
-                prepare.setString(2, register_username.getText());
-                prepare.setString(3, register_password.getText());
+                prepare.setString(1, email);
+                prepare.setString(2, username);
+                prepare.setString(3, password);
                 prepare.setString(4, sqlDate.toString());
 
                 prepare.executeUpdate();
                 alert.successMessage("Rejestracja wykonana pomyślnie!");
                 registerClear();
 
-                //Switch form
+                // Switch form
                 login_form.setVisible(true);
                 register_form.setVisible(false);
             }
         } catch (Exception e) {
             e.printStackTrace();
             alert.errorMessage("Błąd rejestracji: " + e.getMessage());
+        }
+    }
+
+    public void loginShowPassword() {
+
+        if (login_checkbox.isSelected()) {
+            login_showPassword.setText(login_password.getText());
+            login_showPassword.setVisible(true);
+            login_password.setVisible(false);
+        } else {
+            login_password.setText(login_showPassword.getText());
+            login_showPassword.setVisible(false);
+            login_password.setVisible(true);
         }
     }
 
@@ -152,9 +222,57 @@ public class FXMLDocumentController implements Initializable {
         register_showPassword.clear();
     }
 
+    public void listUser() {
+        List<String> listU = new ArrayList<>();
+
+        for (String data : Users.user) {
+            listU.add(data);
+        }
+
+        ObservableList<String> listData = FXCollections.observableList(listU);
+        login_combobox.setItems(listData);
+
+    }
+
+    public void switchPage(ActionEvent event) {
+        String selected = login_combobox.getSelectionModel().getSelectedItem();
+        if(selected == null) return;
+
+        String fxmlFile = null;
+        switch(selected) {
+            case "Administrator":
+                fxmlFile = "loginScene.fxml";
+                System.out.println("Admin wybrany");
+                break;
+            case "Lekarz":
+                fxmlFile = "DoctorPage.fxml";
+                System.out.println("Lekarz wybrany");
+                break;
+            case "Pacjent":
+
+                System.out.println("Pacjent wybrany");
+                return;
+        }
+
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource(fxmlFile));
+            Stage stage = new Stage();
+            stage.setTitle("System Kliniki");
+            stage.setMinHeight(550);
+            stage.setMinWidth(330);
+            stage.setScene(new Scene(root));
+            stage.show();
+
+
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("Błąd ładowania pliku: " + fxmlFile);
+        }
+    }
+
     @FXML
     public void switchForm(ActionEvent event) {
-        if(event.getSource() == login_signIn) {
+        if(event.getSource() == login_registerHere) {
             // register form visible
             login_form.setVisible(false);
             register_form.setVisible(true);
@@ -168,5 +286,6 @@ public class FXMLDocumentController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         //initialize listeners
+        listUser();
     }
 }

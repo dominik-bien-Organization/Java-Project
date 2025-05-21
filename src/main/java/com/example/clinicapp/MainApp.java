@@ -10,17 +10,17 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        // Załaduj FXML
-        Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/loginScene.fxml"));
+
+        Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/FXMLDocument.fxml"));
 
 
-        // Stwórz scenę
+
         Scene scene = new Scene(root);
         stage.setMinHeight(550);
         stage.setMinWidth(330);
 
         stage.setTitle("System Kliniki");
-        // Ustaw scenę w głównym oknie (Stage)
+
 
         stage.setScene(scene);
         stage.show();

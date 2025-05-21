@@ -26,7 +26,7 @@ public class AlertMessage {
 
     public boolean confirmationMessage(String message) {
         alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirmation");
+        alert.setTitle("Potwierdzenie");
         alert.setHeaderText(null);
         alert.setContentText(message);
         Optional<ButtonType> option = alert.showAndWait();
