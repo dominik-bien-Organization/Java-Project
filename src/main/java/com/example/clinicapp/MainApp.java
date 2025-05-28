@@ -13,7 +13,7 @@ public class MainApp extends Application {
 
         Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/FXMLDocument.fxml"));
 
-
+        Database.initializeDatabase();
 
         Scene scene = new Scene(root);
         stage.setMinHeight(550);
