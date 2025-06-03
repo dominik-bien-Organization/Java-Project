@@ -7,22 +7,13 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class MainApp extends Application {
-
     @Override
     public void start(Stage stage) throws Exception {
-
-        Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/FXMLDocument.fxml"));
-
         Database.initializeDatabase();
-
+        Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
         Scene scene = new Scene(root);
-        stage.setMinHeight(550);
-        stage.setMinWidth(330);
-
-        stage.setTitle("System Kliniki");
-
-
         stage.setScene(scene);
+        stage.setTitle("Wybór użytkownika");
         stage.show();
     }
 

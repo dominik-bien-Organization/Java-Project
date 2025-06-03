@@ -26,7 +26,7 @@ import java.util.Date;
 import java.util.ResourceBundle;
 import java.util.List;
 
-public class FXMLDocumentController implements Initializable {
+public class PatientPageController implements Initializable {
 
     @FXML
     private Button login_button;
@@ -101,7 +101,7 @@ public class FXMLDocumentController implements Initializable {
         if (username.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
         } else {
-            String sql = "SELECT * FROM admin WHERE username = ? AND password = ?";
+            String sql = "SELECT * FROM patient WHERE username = ? AND password = ?";
 
             connect = Database.connectDb();
 
@@ -154,7 +154,7 @@ public class FXMLDocumentController implements Initializable {
         }
 
         try {
-            String checkUsername = "SELECT * FROM admin WHERE username = ?";
+            String checkUsername = "SELECT * FROM patient WHERE username = ?";
             connect = Database.connectDb();
             prepare = connect.prepareStatement(checkUsername);
             prepare.setString(1, username);
@@ -165,7 +165,7 @@ public class FXMLDocumentController implements Initializable {
             } else if (password.length() < 8) {
                 alert.errorMessage("Hasło nieprawidłowe. Musi mieć przynajmniej 8 znaków");
             } else {
-                String insertData = "INSERT INTO admin (email, username, password, date) VALUES (?, ?, ?, ?)";
+                String insertData = "INSERT INTO patient (email, username, password, date) VALUES (?, ?, ?, ?)";
                 prepare = connect.prepareStatement(insertData);
                 java.sql.Date sqlDate = new java.sql.Date(new Date().getTime());
 
@@ -240,16 +240,13 @@ public class FXMLDocumentController implements Initializable {
 
         String fxmlFile = null;
         switch(selected) {
-            case "Administrator":
-                fxmlFile = "loginScene.fxml";
-                System.out.println("Admin wybrany");
-                break;
+
             case "Lekarz":
                 fxmlFile = "DoctorPage.fxml";
                 System.out.println("Lekarz wybrany");
                 break;
             case "Pacjent":
-
+                fxmlFile = "PatientPage.fxml";
                 System.out.println("Pacjent wybrany");
                 return;
         }
