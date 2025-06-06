@@ -33,8 +33,8 @@
                      <font><Font size="11.0" /></font>
                   </CheckBox>
                   <Button fx:id="login_button" layoutX="62.0" layoutY="353.0" prefWidth="224.0" prefHeight="30.0" text="Zaloguj się" onAction="#loginAccount" />
-                  <ComboBox fx:id="login_combobox" layoutX="49.0" layoutY="432.0" prefWidth="250.0" prefHeight="27.0" promptText="Sposób logowania się" onAction="#listUser" />
                   <Hyperlink fx:id="login_registerHere" layoutX="106.0" layoutY="498.0" prefWidth="136.0" prefHeight="24.0" text="Rejestracja" onAction="#switchForm" />
+                  <Button layoutX="10.0" layoutY="10.0" text="Powrót" onAction="#handleBackButton"/>
                </children>
             </AnchorPane>
 

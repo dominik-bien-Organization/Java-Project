@@ -17,6 +17,7 @@ public class LoginChoiceController {
 
     @FXML
     public void initialize() {
+        userComboBox.getItems().clear();
         userComboBox.getItems().addAll(Users.user);
     }
 

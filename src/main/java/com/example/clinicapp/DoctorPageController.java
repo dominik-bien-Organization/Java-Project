@@ -13,6 +13,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
 
+import java.io.IOException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,9 +29,6 @@ public class DoctorPageController implements Initializable {
     private CheckBox login_checkbox;
 
     @FXML
-    private ComboBox<String> login_combobox;
-
-    @FXML
     private AnchorPane login_form;
 
     @FXML
@@ -40,7 +38,7 @@ public class DoctorPageController implements Initializable {
     private Hyperlink login_registerHere;
 
     @FXML
-    private TextField login_username;
+    private TextField login_email;
 
     @FXML
     private TextField login_showPassword;
@@ -85,7 +83,7 @@ public class DoctorPageController implements Initializable {
 
 
     public void loginAccount() {
-        String username = login_username.getText();
+        String username = login_email.getText();
         String password;
 
         if (login_checkbox.isSelected()) {
@@ -99,7 +97,7 @@ public class DoctorPageController implements Initializable {
         if (username.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
         } else {
-            String sql = "SELECT * FROM doctor WHERE username = ? AND password = ?";
+            String sql = "SELECT * FROM doctor WHERE email = ? AND password = ?";
 
             connect = Database.connectDb();
 
@@ -223,51 +221,6 @@ public class DoctorPageController implements Initializable {
         register_showPassword.clear();
     }
 
-    public void listUser() {
-        List<String> listU = new ArrayList<>();
-
-        for (String data : Users.user) {
-            listU.add(data);
-        }
-
-        ObservableList<String> listData = FXCollections.observableList(listU);
-        login_combobox.setItems(listData);
-
-    }
-
-    public void switchPage(ActionEvent event) {
-        String selected = login_combobox.getSelectionModel().getSelectedItem();
-        if(selected == null) return;
-
-        String fxmlFile = null;
-        switch(selected) {
-
-            case "Lekarz":
-                fxmlFile = "DoctorPage.fxml";
-                System.out.println("Lekarz wybrany");
-                break;
-            case "Pacjent":
-                fxmlFile = "PatientPage.fxml";
-                System.out.println("Pacjent wybrany");
-                return;
-        }
-
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlFile));
-            Stage stage = new Stage();
-            stage.setTitle("System Kliniki");
-            stage.setMinHeight(550);
-            stage.setMinWidth(330);
-            stage.setScene(new Scene(root));
-            stage.show();
-
-
-        } catch(Exception e) {
-            e.printStackTrace();
-            System.out.println("Błąd ładowania pliku: " + fxmlFile);
-        }
-    }
-
     @FXML
     public void switchForm(ActionEvent event) {
         if(event.getSource() == login_registerHere) {
@@ -281,10 +234,15 @@ public class DoctorPageController implements Initializable {
         }
     }
 
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        //initialize listeners
-        listUser();
+    @FXML
+    void handleBackButton(ActionEvent event) throws IOException {
+        Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
+        Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+        stage.setScene(new Scene(root));
     }
 
+    @Override
+    public void initialize(URL url, ResourceBundle rb) {
+        // 
+    }
 }
