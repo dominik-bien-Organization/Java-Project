@@ -122,7 +122,7 @@ public class PatientPageController implements Initializable {
                     stage.setScene(new Scene(root));
                     stage.setTitle("Clinic System");
                     stage.show();
-
+                    stage.centerOnScreen();
 
                 } else {
                     alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
@@ -238,6 +238,7 @@ public class PatientPageController implements Initializable {
         Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
         stage.setScene(new Scene(root));
+
     }
 
     @Override

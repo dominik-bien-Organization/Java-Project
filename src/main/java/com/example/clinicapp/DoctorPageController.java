@@ -83,6 +83,7 @@ public class DoctorPageController implements Initializable {
 
 
     public void loginAccount() {
+
         String username = login_email.getText();
         String password;
 
@@ -110,17 +111,20 @@ public class DoctorPageController implements Initializable {
                 if (result.next()) {
                     alert.successMessage("Logowanie wykonano pomyślnie!");
 
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("ClinicSystemPage.fxml"));
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("DoctorDashboard.fxml"));
                     Parent root = loader.load();
 
+                    // Pobierz kontroler z FXMLLoadera
+                    DoctorDashboard controller = loader.getController();
+
+                    // Przekaż dane do kontrolera
+                    controller.setDoctor(result.getString("fullname"));
 
                     Stage stage = (Stage) login_button.getScene().getWindow();
-
-
                     stage.setScene(new Scene(root));
                     stage.setTitle("Clinic System");
                     stage.show();
-
+                    stage.centerOnScreen();
 
                 } else {
                     alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
