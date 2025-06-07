@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.clinicapp.LoginChoiceController"
+            prefWidth="300.0" prefHeight="200.0">
+    <children>
+        <Label layoutX="60.0" layoutY="40.0" text="Wybierz typ użytkownika:" />
+        <ComboBox fx:id="userComboBox" layoutX="50.0" layoutY="80.0" prefWidth="200.0" onAction="#handleUserSelection" />
+    </children>
+</AnchorPane>
