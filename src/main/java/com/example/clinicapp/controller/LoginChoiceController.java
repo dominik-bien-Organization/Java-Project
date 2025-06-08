@@ -1,4 +1,4 @@
-package com.example.clinicapp;
+package com.example.clinicapp.controller;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class LoginChoiceController {
+    public static final String[] USER_TYPES = {"Lekarz", "Pacjent"};
 
     @FXML
     private ComboBox<String> userComboBox;
@@ -18,7 +19,7 @@ public class LoginChoiceController {
     @FXML
     public void initialize() {
         userComboBox.getItems().clear();
-        userComboBox.getItems().addAll(Users.user);
+        userComboBox.getItems().addAll(USER_TYPES);
     }
 
     @FXML
@@ -26,8 +27,8 @@ public class LoginChoiceController {
         String selectedUser = userComboBox.getValue();
 
         String fxmlToLoad = switch (selectedUser) {
-            case "Lekarz" -> "DoctorPage.fxml";
-            case "Pacjent" -> "PatientPage.fxml";
+            case "Lekarz" -> "/com/example/clinicapp/DoctorPage.fxml";
+            case "Pacjent" -> "/com/example/clinicapp/PatientPage.fxml";
             default -> null;
         };
 
