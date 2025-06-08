@@ -1,78 +1,64 @@
 package com.example.clinicapp.controller;
 
-import com.example.clinicapp.database.DatabaseConnector;
+import com.example.clinicapp.model.Doctor;
+import com.example.clinicapp.service.DoctorService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.stage.Stage;
 
 import java.net.URL;
-import java.sql.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
 public class DoctorDashboardController implements Initializable {
 
-    @FXML
-    private Label labelDoctorname;
+    @FXML private Label labelDoctorname;
+    @FXML private BarChart<String, Number> barChartPatients;
+    @FXML private CategoryAxis xAxis;
+    @FXML private NumberAxis yAxis;
+    @FXML private Button logoutButton;
 
-    private String doctorname;
+    private Doctor doctor;
+    private final DoctorService doctorService = new DoctorService();
 
-    @FXML
-    private BarChart<String, Number> barChartPatients;
-
-    @FXML
-    private CategoryAxis xAxis;
-
-    @FXML
-    private NumberAxis yAxis;
-
-    @FXML
-    private javafx.scene.control.Button logoutButton;
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
+        Platform.runLater(() -> labelDoctorname.setText(doctor.getFullname()));
+    }
 
     @FXML
     private void handleLogout() {
         try {
-            javafx.fxml.FXMLLoader loader =
-                    new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/clinicapp/DoctorPage.fxml"));
-            javafx.scene.Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/DoctorPage.fxml"));
+            Parent root = loader.load();
 
-            javafx.scene.Scene scene = new javafx.scene.Scene(root);
-            javafx.stage.Stage stage = new javafx.stage.Stage();
+            Scene scene = new Scene(root);
+            Stage stage = new Stage();
             stage.setScene(scene);
             stage.setTitle("Logowanie - Lekarz");
-            stage.show();
             stage.centerOnScreen();
+            stage.show();
 
-            // Zamknij bieżące okno (dashboard)
-            javafx.stage.Stage currentStage = (javafx.stage.Stage) logoutButton.getScene().getWindow();
+            Stage currentStage = (Stage) logoutButton.getScene().getWindow();
             currentStage.close();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void setDoctor(String doctor) {
-        this.doctorname = doctor;
-
-        Platform.runLater(() -> {
-            if (labelDoctorname != null) {
-                labelDoctorname.setText(doctorname);
-            }
-        });
-    }
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        Map<String, Integer> patientsPerDay = getPatient();
+        Map<String, Integer> patientsPerDay = doctorService.getPatientsLast7Days();
 
         xAxis.setLabel("Data");
         yAxis.setLabel("Ilość");
@@ -86,39 +72,5 @@ public class DoctorDashboardController implements Initializable {
 
         barChartPatients.getData().clear();
         barChartPatients.getData().add(series);
-    }
-
-    public Map<String, Integer> getPatient() {
-        Map<String, Integer> patientsPerDay = new LinkedHashMap<>();
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
-            patientsPerDay.put(date.format(formatter), 0);
-        }
-
-        String sql = """
-            SELECT d.date, 
-                   (SELECT COUNT(*) FROM patient p2 WHERE p2.date <= d.date) AS cumulative_count 
-            FROM (SELECT DISTINCT date FROM patient WHERE date >= CURDATE() - INTERVAL 6 DAY) d 
-            ORDER BY d.date
-            """;
-
-        try (Connection conn = DatabaseConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                String date = rs.getString("date");
-                int count = rs.getInt("cumulative_count");
-                patientsPerDay.put(date, count);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return patientsPerDay;
     }
 }

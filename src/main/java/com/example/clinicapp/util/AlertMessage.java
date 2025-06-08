@@ -1,4 +1,4 @@
-package com.example.clinicapp;
+package com.example.clinicapp.util;
 
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -41,6 +41,3 @@ public class AlertMessage {
         }
 
     }
-
-
-

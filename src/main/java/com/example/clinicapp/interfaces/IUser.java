@@ -12,4 +12,6 @@ public interface IUser {
     void setEmail(String email);
     void setPassword(String password);
     void setDate(Date date);
+
+    boolean isValid();
 }
