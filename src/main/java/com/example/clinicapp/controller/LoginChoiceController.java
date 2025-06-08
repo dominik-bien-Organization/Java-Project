@@ -1,5 +1,6 @@
-package com.example.clinicapp;
+package com.example.clinicapp.controller;
 
+import com.example.clinicapp.model.Users;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -26,8 +27,8 @@ public class LoginChoiceController {
         String selectedUser = userComboBox.getValue();
 
         String fxmlToLoad = switch (selectedUser) {
-            case "Lekarz" -> "DoctorPage.fxml";
-            case "Pacjent" -> "PatientPage.fxml";
+            case "Lekarz" -> "/com/example/clinicapp/DoctorPage.fxml";
+            case "Pacjent" -> "/com/example/clinicapp/PatientPage.fxml";
             default -> null;
         };
 

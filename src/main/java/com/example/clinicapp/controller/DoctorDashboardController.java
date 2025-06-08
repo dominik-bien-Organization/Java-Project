@@ -1,5 +1,6 @@
-package com.example.clinicapp;
+package com.example.clinicapp.controller;
 
+import com.example.clinicapp.database.DatabaseConnector;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -17,10 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-
-
-
-public class DoctorDashboard implements Initializable {
+public class DoctorDashboardController implements Initializable {
 
     @FXML
     private Label labelDoctorname;
@@ -39,12 +37,11 @@ public class DoctorDashboard implements Initializable {
     @FXML
     private javafx.scene.control.Button logoutButton;
 
-
     @FXML
     private void handleLogout() {
         try {
             javafx.fxml.FXMLLoader loader =
-                    new javafx.fxml.FXMLLoader(getClass().getResource("DoctorPage.fxml"));
+                    new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/clinicapp/DoctorPage.fxml"));
             javafx.scene.Parent root = loader.load();
 
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
@@ -62,12 +59,6 @@ public class DoctorDashboard implements Initializable {
             e.printStackTrace();
         }
     }
-
-
-
-
-
-
 
     public void setDoctor(String doctor) {
         this.doctorname = doctor;
@@ -99,26 +90,22 @@ public class DoctorDashboard implements Initializable {
 
     public Map<String, Integer> getPatient() {
         Map<String, Integer> patientsPerDay = new LinkedHashMap<>();
-
-        String url = "jdbc:mysql://localhost:3306/clinic";
-        String user = "root";
-        String password = "";
-
         LocalDate today = LocalDate.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         for (int i = 6; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
             patientsPerDay.put(date.format(formatter), 0);
         }
 
+        String sql = """
+            SELECT d.date, 
+                   (SELECT COUNT(*) FROM patient p2 WHERE p2.date <= d.date) AS cumulative_count 
+            FROM (SELECT DISTINCT date FROM patient WHERE date >= CURDATE() - INTERVAL 6 DAY) d 
+            ORDER BY d.date
+            """;
 
-        String sql = "SELECT d.date, " +
-                "(SELECT COUNT(*) FROM patient p2 WHERE p2.date <= d.date) AS cumulative_count " +
-                "FROM (SELECT DISTINCT date FROM patient WHERE date >= CURDATE() - INTERVAL 6 DAY) d " +
-                "ORDER BY d.date";
-
-
-        try (Connection conn = DriverManager.getConnection(url, user, password);
+        try (Connection conn = DatabaseConnector.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -134,5 +121,4 @@ public class DoctorDashboard implements Initializable {
 
         return patientsPerDay;
     }
-
 }

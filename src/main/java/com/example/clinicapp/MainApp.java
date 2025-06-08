@@ -1,5 +1,6 @@
 package com.example.clinicapp;
 
+import com.example.clinicapp.database.DatabaseInitializer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -9,7 +10,7 @@ import javafx.stage.Stage;
 public class MainApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
-        Database.initializeDatabase();
+        DatabaseInitializer.initializeDatabase();
         Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
         Scene scene = new Scene(root);
         stage.setScene(scene);

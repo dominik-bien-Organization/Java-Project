@@ -1,7 +1,7 @@
-package com.example.clinicapp;
+package com.example.clinicapp.controller;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.example.clinicapp.util.AlertMessage;
+import com.example.clinicapp.database.DatabaseConnector;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,7 +11,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-
 
 import java.io.IOException;
 import java.net.URL;
@@ -66,13 +65,8 @@ public class DoctorPageController implements Initializable {
     @FXML
     private PasswordField register_password;
 
-
-
-
     @FXML
     private TextField register_fullName;
-
-
 
     //DataBase tools
     private Connection connect;
@@ -81,44 +75,34 @@ public class DoctorPageController implements Initializable {
 
     private AlertMessage alert = new AlertMessage();
 
-
     public void loginAccount() {
-
         String username = login_email.getText();
-        String password;
-
-        if (login_checkbox.isSelected()) {
-
-            password = login_showPassword.getText();
-        } else {
-
-            password = login_password.getText();
-        }
+        String password = login_checkbox.isSelected() ? login_showPassword.getText() : login_password.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
-        } else {
-            String sql = "SELECT * FROM doctor WHERE email = ? AND password = ?";
+            return;
+        }
 
-            connect = Database.connectDb();
+        String sql = "SELECT * FROM doctor WHERE email = ? AND password = ?";
 
-            try {
-                prepare = connect.prepareStatement(sql);
-                prepare.setString(1, username);
-                prepare.setString(2, password);
-                result = prepare.executeQuery();
+        try (Connection connect = DatabaseConnector.getConnection();
+             PreparedStatement prepare = connect.prepareStatement(sql)) {
 
+            prepare.setString(1, username);
+            prepare.setString(2, password);
+
+            try (ResultSet result = prepare.executeQuery()) {
                 if (result.next()) {
+                    String fullname = result.getString("fullname");
+
                     alert.successMessage("Logowanie wykonano pomyślnie!");
 
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("DoctorDashboard.fxml"));
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/DoctorDashboard.fxml"));
                     Parent root = loader.load();
 
-                    // Pobierz kontroler z FXMLLoadera
-                    DoctorDashboard controller = loader.getController();
-
-                    // Przekaż dane do kontrolera
-                    controller.setDoctor(result.getString("fullname"));
+                    DoctorDashboardController controller = loader.getController();
+                    controller.setDoctor(fullname);
 
                     Stage stage = (Stage) login_button.getScene().getWindow();
                     stage.setScene(new Scene(root));
@@ -129,49 +113,44 @@ public class DoctorPageController implements Initializable {
                 } else {
                     alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            alert.errorMessage("Błąd podczas logowania: " + e.getMessage());
         }
     }
 
-
     public void registerAccount() {
-
-        connect = Database.connectDb();
-
         String fullname = register_fullName.getText();
         String email = register_email.getText();
-        String password;
+        String password = register_showPassword.isVisible() ? register_showPassword.getText() : register_password.getText();
 
-        if (register_showPassword.isVisible()) {
-            password = register_showPassword.getText();
-        } else {
-            password = register_password.getText();
-        }
-
-        // Walidacja
         if (fullname.isEmpty() || email.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Proszę uzupełnić wszystkie wymagane pola");
             return;
         }
 
-        try {
-            connect = Database.connectDb(); // <--- koniecznie
+        if (password.length() < 8) {
+            alert.errorMessage("Hasło musi mieć przynajmniej 8 znaków");
+            return;
+        }
 
-            // Sprawdź, czy lekarz o takim email już istnieje
+        try (Connection connect = DatabaseConnector.getConnection()) {
+
             String checkEmail = "SELECT * FROM doctor WHERE email = ?";
-            prepare = connect.prepareStatement(checkEmail);
-            prepare.setString(1, email);
-            result = prepare.executeQuery();
+            try (PreparedStatement prepare = connect.prepareStatement(checkEmail)) {
+                prepare.setString(1, email);
+                try (ResultSet result = prepare.executeQuery()) {
+                    if (result.next()) {
+                        alert.errorMessage("Lekarz z takim emailem już istnieje w bazie danych.");
+                        return;
+                    }
+                }
+            }
 
-            if (result.next()) {
-                alert.errorMessage("Lekarz z takim emailem już istnieje w bazie danych.");
-            } else if (password.length() < 8) {
-                alert.errorMessage("Hasło musi mieć przynajmniej 8 znaków");
-            } else {
-                String insertData = "INSERT INTO doctor (fullname, email, password, date) VALUES (?, ?, ?, ?)";
-                prepare = connect.prepareStatement(insertData);
+            String insertData = "INSERT INTO doctor (fullname, email, password, date) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement prepare = connect.prepareStatement(insertData)) {
                 java.sql.Date sqlDate = new java.sql.Date(new Date().getTime());
 
                 prepare.setString(1, fullname);
@@ -186,11 +165,13 @@ public class DoctorPageController implements Initializable {
                 login_form.setVisible(true);
                 register_form.setVisible(false);
             }
+
         } catch (Exception e) {
             e.printStackTrace();
             alert.errorMessage("Błąd rejestracji: " + e.getMessage());
         }
     }
+
     public void loginShowPassword() {
 
         if (login_checkbox.isSelected()) {
@@ -240,13 +221,13 @@ public class DoctorPageController implements Initializable {
 
     @FXML
     void handleBackButton(ActionEvent event) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/LoginChoice.fxml"));
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
         stage.setScene(new Scene(root));
     }
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        // 
+        //
     }
 }
