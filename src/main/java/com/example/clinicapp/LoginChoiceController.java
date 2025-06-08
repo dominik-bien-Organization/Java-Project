@@ -17,6 +17,7 @@ public class LoginChoiceController {
 
     @FXML
     public void initialize() {
+        userComboBox.getItems().clear();
         userComboBox.getItems().addAll(Users.user);
     }
 
@@ -34,6 +35,7 @@ public class LoginChoiceController {
             Parent root = FXMLLoader.load(getClass().getResource(fxmlToLoad));
             Stage stage = (Stage) userComboBox.getScene().getWindow();
             stage.setScene(new Scene(root));
+            stage.centerOnScreen();
         }
     }
 }
