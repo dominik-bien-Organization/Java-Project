@@ -1,8 +1,12 @@
 package com.example.clinicapp.controller;
 
 import com.example.clinicapp.model.Doctor;
+import com.example.clinicapp.network.ClinicClient;
+import com.example.clinicapp.network.MessageType;
+import com.example.clinicapp.network.NetworkMessage;
 import com.example.clinicapp.service.DoctorService;
 import com.example.clinicapp.util.AlertMessage;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -38,6 +42,7 @@ public class DoctorPageController implements Initializable {
 
     private AlertMessage alert = new AlertMessage();
     private DoctorService doctorService = new DoctorService();
+    private ClinicClient clinicClient;
 
     public void loginAccount() {
         String email = login_email.getText();
@@ -62,7 +67,21 @@ public class DoctorPageController implements Initializable {
             Doctor doctor = doctorService.login(email, password);
             if (doctor != null) {
                 alert.successMessage("Logowanie wykonano pomyślnie!");
-                openDoctorDashboard(doctor);
+
+
+                if (clinicClient != null && clinicClient.isConnected()) {
+                    try {
+                        clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
+                                doctor.getEmail() + ":" + doctor.getPassword() + ":"));
+                    } catch (IOException e) {
+                        alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+                    }
+                } else {
+                    alert.errorMessage("Brak połączenia z serwerem.");
+                }
+
+                openDoctorDashboard(doctor, clinicClient);
+
             } else {
                 alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
             }
@@ -72,17 +91,18 @@ public class DoctorPageController implements Initializable {
         }
     }
 
-    private void openDoctorDashboard(Doctor doctor) {
+    private void openDoctorDashboard(Doctor doctor, ClinicClient clinicClient) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/DoctorDashboard.fxml"));
             Parent root = loader.load();
 
             DoctorDashboardController controller = loader.getController();
             controller.setDoctor(doctor);
+            controller.setClinicClient(clinicClient);
 
             Stage stage = (Stage) login_button.getScene().getWindow();
             stage.setScene(new Scene(root));
-            stage.setTitle("Clinic System");
+            stage.setTitle("System kliniki-Panel lekarza");
             stage.centerOnScreen();
             stage.show();
 
@@ -90,6 +110,10 @@ public class DoctorPageController implements Initializable {
             e.printStackTrace();
             alert.errorMessage("Błąd ładowania panelu lekarza: " + e.getMessage());
         }
+    }
+
+    public void setClinicClient(ClinicClient clinicClient) {
+        this.clinicClient = clinicClient;
     }
 
     public void registerAccount() {
@@ -163,6 +187,7 @@ public class DoctorPageController implements Initializable {
         }
     }
 
+
     public void registerClear() {
         register_email.clear();
         register_fullName.clear();
@@ -188,8 +213,30 @@ public class DoctorPageController implements Initializable {
         stage.setScene(new Scene(root));
     }
 
+
+    private void onServerMessage(NetworkMessage msg) {
+        Platform.runLater(() -> {
+            System.out.println("Otrzymano wiadomość: " + msg.getType() + " - " + msg.getPayload());
+
+            switch (msg.getType()) {
+                case LOGIN:
+                    alert.successMessage("Zalogowano pomyślnie!");
+                    break;
+
+                default:
+                    alert.errorMessage("Nieznany typ wiadomości.");
+            }
+        });
+    }
+
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        //
+        try {
+            clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
+            clinicClient.startListening();
+        } catch (IOException e) {
+            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
+            clinicClient = null; // lub inna obsługa
+        }
     }
 }

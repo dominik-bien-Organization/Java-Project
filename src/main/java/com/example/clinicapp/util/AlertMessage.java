@@ -10,10 +10,10 @@ public class AlertMessage {
     private Alert alert;
 
     public void errorMessage(String message) {
-    alert = new Alert(Alert.AlertType.ERROR);
-    alert.setTitle("Błąd");
-    alert.setHeaderText(message);
-    alert.showAndWait();
+        alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Błąd");
+        alert.setHeaderText(message);
+        alert.showAndWait();
     }
 
     public void successMessage(String message) {
@@ -33,11 +33,10 @@ public class AlertMessage {
 
         if (option.get() == ButtonType.OK) {
             return true;
-        }
-        else {
+        } else {
             return false;
 
-            }
         }
-
     }
+
+}

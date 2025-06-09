@@ -4,6 +4,7 @@ module com.example.clinicapp {
     requires java.sql;
     requires java.desktop;
 
+
     opens com.example.clinicapp to javafx.fxml;
     exports com.example.clinicapp;
     exports com.example.clinicapp.controller;
@@ -12,4 +13,8 @@ module com.example.clinicapp {
     opens com.example.clinicapp.model to javafx.fxml;
     exports com.example.clinicapp.util;
     opens com.example.clinicapp.util to javafx.fxml;
+
+    exports com.example.clinicapp.server;
+    opens com.example.clinicapp.server to javafx.fxml;
+
 }

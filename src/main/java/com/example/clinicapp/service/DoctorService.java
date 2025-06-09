@@ -6,8 +6,7 @@ import com.example.clinicapp.model.Doctor;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Date;
 
 public class DoctorService {
@@ -24,7 +23,7 @@ public class DoctorService {
             try (ResultSet result = prepare.executeQuery()) {
                 if (result.next()) {
                     return new Doctor(
-                            result.getInt("id"),
+                            result.getInt("doctorId"),
                             result.getString("fullname"),
                             result.getString("email"),
                             result.getString("password"),
@@ -65,6 +64,35 @@ public class DoctorService {
         }
     }
 
+
+
+    public List<Doctor> getAllDoctors() {
+        List<Doctor> doctors = new ArrayList<>();
+        String sql = "SELECT * FROM doctor";
+
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Doctor doctor = new Doctor(
+                        rs.getInt("doctorId"),
+                        rs.getString("fullname"),
+                        rs.getString("email"),
+                        rs.getString("password"),
+                        rs.getDate("date")
+                );
+                doctors.add(doctor);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace(); // Możesz też użyć logowania
+        }
+
+        return doctors;
+    }
+
+
     public Map<String, Integer> getPatientsLast7Days() {
         Map<String, Integer> patientsPerDay = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();
@@ -100,6 +128,28 @@ public class DoctorService {
         return patientsPerDay;
     }
 
+    public int getDoctorIdByFullName(String fullname) {
+        String sql = "SELECT doctorId FROM doctor WHERE fullname = ?";
+
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, fullname);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("doctorId");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace(); // albo logger
+        }
+
+        return -1; // lub rzucić wyjątek jeśli doktor nie został znaleziony
+    }
+
+
+
     public boolean updatePassword(int doctorId, String newPassword) throws SQLException {
         String sql = "UPDATE doctor SET password = ? WHERE id = ?";
 
@@ -115,7 +165,7 @@ public class DoctorService {
     }
 
     public boolean deleteDoctor(int doctorId) throws SQLException {
-        String sql = "DELETE FROM doctor WHERE id = ?";
+        String sql = "DELETE FROM doctor WHERE doctorId = ?";
 
         try (Connection connect = DatabaseConnector.getConnection();
              PreparedStatement prepare = connect.prepareStatement(sql)) {

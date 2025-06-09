@@ -1,8 +1,12 @@
 package com.example.clinicapp.controller;
 
 import com.example.clinicapp.model.Patient;
+import com.example.clinicapp.network.ClinicClient;
+import com.example.clinicapp.network.MessageType;
+import com.example.clinicapp.network.NetworkMessage;
 import com.example.clinicapp.service.PatientService;
 import com.example.clinicapp.util.AlertMessage;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -39,6 +43,13 @@ public class PatientPageController implements Initializable {
 
     private AlertMessage alert = new AlertMessage();
     private PatientService patientService = new PatientService();
+    private ClinicClient clinicClient;
+
+
+
+    public void setClinicClient(ClinicClient clinicClient) {
+        this.clinicClient = clinicClient;
+    }
 
     public void loginAccount() {
         String username = login_username.getText();
@@ -56,7 +67,20 @@ public class PatientPageController implements Initializable {
 
         Optional<Patient> patientOpt = patientService.login(username, password);
         if (patientOpt.isPresent()) {
-            openClinicSystem();
+            alert.successMessage("Logowanie wykonano pomyślnie!");
+
+            if (clinicClient != null && clinicClient.isConnected()) {
+                try {
+                    clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
+                            username + ":" + password + ":"));
+                } catch (IOException e) {
+                    alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+                }
+            } else {
+                alert.errorMessage("Brak połączenia z serwerem.");
+            }
+
+            openClinicSystem(patientOpt.get()); // otwarcie GUI po logowaniu
         } else {
             alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
         }
@@ -97,14 +121,47 @@ public class PatientPageController implements Initializable {
         }
     }
 
-    private void openClinicSystem() {
+    private void onServerMessage(NetworkMessage msg) {
+        Platform.runLater(() -> {
+            System.out.println("Otrzymano wiadomość: " + msg.getType() + " - " + msg.getPayload());
+
+            switch (msg.getType()) {
+                case LOGIN:
+                    alert.successMessage("Zalogowano pomyślnie!");
+                    break;
+                case BOOKING_CONFIRMED:
+                    alert.successMessage("Twoja wizyta została pomyślnie zarezerwowana!");
+                    break;
+
+                case BOOKING_CANCELLED:
+                    alert.errorMessage("Rezerwacja wizyty nie powiodła się.");
+                    break;
+
+                default:
+                    alert.errorMessage("Nieznany typ wiadomości.");
+            }
+        });
+    }
+
+    private void openClinicSystem(Patient loggedPatient) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/ClinicSystemPage.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/PatientDashboard.fxml"));
             Parent root = loader.load();
+
+
+            // Pobierz kontroler i ustaw zalogowanego pacjenta
+            PatientDashboardController controller = loader.getController();
+
+
+            controller.setClient(clinicClient);
+
+            controller.setCurrentUser(loggedPatient);
+            controller.setOutputStream(clinicClient.getOut()); // jeśli masz dostęp do tego strumienia
+            controller.setClient(clinicClient);
 
             Stage stage = (Stage) login_button.getScene().getWindow();
             stage.setScene(new Scene(root));
-            stage.setTitle("Clinic System");
+            stage.setTitle("System Kliniki zdrowia");
             stage.centerOnScreen();
             stage.show();
         } catch (IOException e) {
@@ -159,11 +216,18 @@ public class PatientPageController implements Initializable {
     void handleBackButton(ActionEvent event) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/LoginChoice.fxml"));
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+
         stage.setScene(new Scene(root));
     }
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        //
+        try {
+            clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
+            clinicClient.startListening();
+        } catch (IOException e) {
+            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
+            clinicClient = null;
+        }
     }
 }

@@ -11,6 +11,11 @@ public class Patient extends User implements IPatient {
     }
 
     @Override
+    public String toString() {
+        return username + " (" + getId() + ")";
+    }
+
+    @Override
     public boolean isValid() {
         return super.isValid() && username != null && !username.isBlank();
     }

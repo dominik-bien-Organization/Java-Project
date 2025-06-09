@@ -37,10 +37,34 @@ public class DatabaseInitializer {
                         date DATE NOT NULL
                     )
                 """);
+                tableStmt.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS appointment (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        patient_id INT NOT NULL,
+                        doctor_id INT NOT NULL,
+                        date DATE NOT NULL,
+                        time TIME NOT NULL,
+                        FOREIGN KEY (patient_id) REFERENCES patient(id),
+                        FOREIGN KEY (doctor_id) REFERENCES doctor(doctorID)
+                    )
+                """);
 
+                tableStmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS recipe (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    patient_id INT NOT NULL,
+                    doctor_id INT NOT NULL,
+                    description TEXT NOT NULL,
+                    issue_date DATE NOT NULL,
+                    FOREIGN KEY (patient_id) REFERENCES patient(id),
+                    FOREIGN KEY (doctor_id) REFERENCES doctor(doctorID)
+    )
+""");
             }
 
-            System.out.println("Database and tables have been initialized.");
+
+
+
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class PatientService {
@@ -35,6 +37,33 @@ public class PatientService {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+
+    public List<Patient> getAllPatients() {
+        List<Patient> patients = new ArrayList<>();
+        String sql = "SELECT id, username, email, password, date FROM patient";
+
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Patient patient = new Patient(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("email"),
+                        rs.getString("password"),
+                        rs.getDate("date")
+                );
+                patients.add(patient);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return patients;
     }
 
     public boolean register(String email, String username, String password) throws Exception {

@@ -29,10 +29,12 @@ tasks.withType(JavaCompile) {
 application {
     mainModule = 'com.example.clinicapp'
     mainClass = 'com.example.clinicapp.MainApp'
+
+
 }
 
 javafx {
-    version = '23.0.1'
+    version = '24.0.1'
     modules = ['javafx.controls', 'javafx.fxml']
 }
 
@@ -40,8 +42,9 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
-    implementation 'com.gluonhq:charm-glisten:6.0.6'
+
     implementation 'mysql:mysql-connector-java:8.0.33'
+
 }
 
 test {
@@ -58,4 +61,15 @@ jlink {
 
 jlinkZip {
     group = 'distribution'
+}
+task runServer(type: JavaExec) {
+    mainClass.set('com.example.clinicapp.server.ServerMainApp')
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = [
+            '--module-path', 'C:/javafx-sdk-24.0.1/lib',
+            '--add-modules', 'javafx.controls,javafx.fxml',
+            '--add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED',
+            '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED'
+    ]
+    standardInput = System.in
 }
