@@ -1,7 +1,7 @@
-
 package com.example.clinicapp.server;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalTime;
@@ -18,90 +18,89 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 
 public class ServerController {
+    private static final int SERVER_PORT = 12345;
+    private static final String SERVER_IP = "192.168.1.111";
+
     @FXML
     private Label statusLabel;
     @FXML
     private ListView<String> logsListView;
     @FXML
     private ListView<String> clientsListView;
+
     private ObservableList<String> logs = FXCollections.observableArrayList();
     private ObservableList<String> clients = FXCollections.observableArrayList();
+    private ObservableList<String> clientsObservableList = FXCollections.observableArrayList();
+
     private ServerSocket serverSocket;
     private Thread serverThread;
     private volatile boolean isRunning = true;
-    private static Map<String, ClientHandler> clientHandlers = new ConcurrentHashMap();
-    private ObservableList<String> clientsObservableList = FXCollections.observableArrayList();
 
-
+    private static Map<String, ClientHandler> clientHandlers = new ConcurrentHashMap<>();
 
     @FXML
     public void initialize() {
-        this.logsListView.setItems(this.logs);
-        this.clientsListView.setItems(this.clients);
+        logsListView.setItems(logs);
         clientsListView.setItems(clientsObservableList);
-        this.startServer();
+        startServer();
     }
 
     private void startServer() {
-        this.serverThread = new Thread(this::runServer);
-        this.serverThread.setDaemon(true);
-        this.serverThread.start();
+        serverThread = new Thread(this::runServer);
+        serverThread.setDaemon(true);
+        serverThread.start();
     }
 
     private void runServer() {
         try {
-            this.serverSocket = new ServerSocket(12345);
+            InetAddress bindAddress = InetAddress.getByName(SERVER_IP); // <– konkretny adres IP
+            serverSocket = new ServerSocket(SERVER_PORT, 50, bindAddress);
+
             Platform.runLater(() -> {
-                this.statusLabel.setText("Status: Uruchomiony na porcie 12345");
-                this.logMessage("Serwer uruchomiony.");
+                statusLabel.setText("Status: Uruchomiony na " + SERVER_IP + ":" + SERVER_PORT);
+                logMessage("Serwer uruchomiony.");
             });
 
-            while(this.isRunning) {
-                Socket clientSocket = this.serverSocket.accept();
-                ClientHandler clientHandler = new ClientHandler(clientSocket, clientHandlers,
-                        this::logClientActivity, this::updateClientsList);
-                (new Thread(clientHandler)).start();
+            while (isRunning) {
+                Socket clientSocket = serverSocket.accept();
+                ClientHandler clientHandler = new ClientHandler(
+                        clientSocket,
+                        clientHandlers,
+                        this::logClientActivity,
+                        this::updateClientsList
+                );
+                new Thread(clientHandler).start();
             }
+
         } catch (IOException e) {
-            if (this.isRunning) {
-                Platform.runLater(() -> this.logMessage("Błąd serwera: " + e.getMessage()));
+            if (isRunning) {
+                Platform.runLater(() -> logMessage("Błąd serwera: " + e.getMessage()));
             }
         }
-
     }
 
     private void logClientActivity(String message) {
         Platform.runLater(() -> {
-            this.logMessage(message);
-            this.updateClientsList(clientHandlers);
+            logMessage(message);
+            updateClientsList(clientHandlers);
         });
     }
 
     private void logMessage(String message) {
-        ObservableList var10000 = this.logs;
-        String var10002 = String.valueOf(LocalTime.now().withNano(0));
-        var10000.add(0, var10002 + ": " + message);
-    }
-
-    private void updateClientList() {
-        List<String> fullNames = clientHandlers.values().stream()
-                .map(ClientHandler::getFullName)
-                .collect(Collectors.toList());
-        this.clients.setAll(fullNames);
+        String time = String.valueOf(LocalTime.now().withNano(0));
+        logs.add(0, time + ": " + message);
     }
 
     public void shutdownServer() {
-        this.isRunning = false;
-
+        isRunning = false;
         try {
-            if (this.serverSocket != null && !this.serverSocket.isClosed()) {
-                this.serverSocket.close();
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        this.logMessage("Serwer zatrzymany.");
+        logMessage("Serwer zatrzymany.");
     }
 
     public void updateClientsList(Map<String, ClientHandler> clients) {
