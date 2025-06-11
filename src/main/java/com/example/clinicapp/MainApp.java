@@ -24,7 +24,8 @@ public class MainApp extends Application {
 
 
 
-        Parent root = FXMLLoader.load(getClass().getResource("LoginChoice.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/LoginChoice.fxml"));
+
         Scene scene = new Scene(root);
         stage.setScene(scene);
         stage.setTitle("Wybór użytkownika");
@@ -34,6 +35,7 @@ public class MainApp extends Application {
 
 
     public static void main(String[] args) {
+
         launch(args);
     }
 }
