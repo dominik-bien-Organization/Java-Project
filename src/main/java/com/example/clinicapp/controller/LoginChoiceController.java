@@ -1,6 +1,7 @@
 package com.example.clinicapp.controller;
 
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -11,6 +12,7 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class LoginChoiceController {
+
     public static final String[] USER_TYPES = {"Lekarz", "Pacjent"};
 
     @FXML
@@ -20,6 +22,17 @@ public class LoginChoiceController {
     public void initialize() {
         userComboBox.getItems().clear();
         userComboBox.getItems().addAll(USER_TYPES);
+
+        userComboBox.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    handleUserSelection(event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @FXML
@@ -33,7 +46,13 @@ public class LoginChoiceController {
         };
 
         if (fxmlToLoad != null) {
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlToLoad));
+            new SceneLoader().loadScene(fxmlToLoad);
+        }
+    }
+
+    private class SceneLoader {
+        void loadScene(String fxmlPath) throws IOException {
+            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
             Stage stage = (Stage) userComboBox.getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.centerOnScreen();
