@@ -26,7 +26,7 @@
         </BarChart>
         <Button fx:id="logoutButton" layoutX="14.0" layoutY="561.0"
                 mnemonicParsing="false" onAction="#handleLogout"
-                prefHeight="30.0" prefWidth="163.0" text="wyloguj sie" />
+                prefHeight="30.0" prefWidth="163.0" text="Wyloguj sie" />
 
         <Label layoutX="14.0" layoutY="14.0" text="System Kliniki zdrowia">
             <font>
@@ -60,7 +60,7 @@
                 prefHeight="25.0" prefWidth="150.0" text="Wystaw recepte" onAction="#handleSaveRecipe" />
         <Label layoutX="10.0" layoutY="158.0" text="Pacjenci" />
         <Label layoutX="14.0" layoutY="214.0" prefHeight="17.0" prefWidth="64.0" text="Opis" />
-        <Label layoutX="6.0" layoutY="441.0" text="Data_wystawienia" />
+        <Label layoutX="6.0" layoutY="441.0" text="Data wystawienia" />
 
     </children>
 </AnchorPane>

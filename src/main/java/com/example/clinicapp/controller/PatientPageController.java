@@ -1,5 +1,6 @@
 package com.example.clinicapp.controller;
 
+import com.example.clinicapp.model.Doctor;
 import com.example.clinicapp.model.Patient;
 import com.example.clinicapp.network.ClinicClient;
 import com.example.clinicapp.network.MessageType;
@@ -29,7 +30,7 @@ public class PatientPageController implements Initializable {
     @FXML private AnchorPane login_form;
     @FXML private PasswordField login_password;
     @FXML private Hyperlink login_registerHere;
-    @FXML private TextField login_username;
+    @FXML private TextField login_email;
     @FXML private TextField login_showPassword;
 
     @FXML private AnchorPane register_form;
@@ -45,18 +46,21 @@ public class PatientPageController implements Initializable {
     private PatientService patientService = new PatientService();
     private ClinicClient clinicClient;
 
-
-
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
     }
 
     public void loginAccount() {
-        String username = login_username.getText();
+        String email = login_email.getText();
         String password = login_checkbox.isSelected() ? login_showPassword.getText() : login_password.getText();
 
-        if (username.isEmpty() || password.isEmpty()) {
+        if (email.isEmpty() || password.isEmpty()) {
             alert.errorMessage("Proszę uzupełnić wszystkie pola");
+            return;
+        }
+
+        if (!Patient.isValidEmail(email)) {
+            alert.errorMessage("Nieprawidłowy format emaila");
             return;
         }
 
@@ -65,14 +69,14 @@ public class PatientPageController implements Initializable {
             return;
         }
 
-        Optional<Patient> patientOpt = patientService.login(username, password);
+        Optional<Patient> patientOpt = patientService.login(email, password);
         if (patientOpt.isPresent()) {
             alert.successMessage("Logowanie wykonano pomyślnie!");
 
             if (clinicClient != null && clinicClient.isConnected()) {
                 try {
                     clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
-                            username + ":" + password + ":"));
+                            email + ":" + password + ":"));
                 } catch (IOException e) {
                     alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
                 }
@@ -80,9 +84,9 @@ public class PatientPageController implements Initializable {
                 alert.errorMessage("Brak połączenia z serwerem.");
             }
 
-            openClinicSystem(patientOpt.get()); // otwarcie GUI po logowaniu
+            openClinicSystem(patientOpt.get());
         } else {
-            alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
+            alert.errorMessage("Nieprawidłowy email lub hasło");
         }
     }
 
@@ -108,7 +112,7 @@ public class PatientPageController implements Initializable {
 
         try {
             if (!patientService.register(email, username, password)) {
-                alert.errorMessage("Użytkownik " + username + " już istnieje w bazie danych.");
+                alert.errorMessage("Użytkownik " + email + " już istnieje w bazie danych.");
                 return;
             }
             alert.successMessage("Rejestracja wykonana pomyślnie!");
@@ -148,10 +152,8 @@ public class PatientPageController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/PatientDashboard.fxml"));
             Parent root = loader.load();
 
-
             // Pobierz kontroler i ustaw zalogowanego pacjenta
             PatientDashboardController controller = loader.getController();
-
 
             controller.setClient(clinicClient);
 

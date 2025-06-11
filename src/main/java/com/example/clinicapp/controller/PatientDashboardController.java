@@ -34,30 +34,16 @@ import javafx.stage.Stage;
 
 public class PatientDashboardController implements Initializable {
 
-    @FXML
-    private ComboBox<String> doctorComboBox;
-
+    @FXML private ComboBox<String> doctorComboBox;
     @FXML private ComboBox<String> hourComboBox;
     @FXML private DatePicker visitDatePicker;
-
-
-    @FXML
-    private Button logoutButton;
-
-    @FXML
-    private TableView<Recipe> RecipeTableView;
-
-    @FXML
-    private TableColumn<Recipe, String> doctorColumn;
-
-    @FXML
-    private TableColumn<Recipe, String> descriptionColumn;
-
-    @FXML
-    private Button buttonDownloadRecipes;
-
-    @FXML
-    private TableColumn<Recipe, String> issueDateColumn;
+    @FXML private Button logoutButton;
+    @FXML private TableView<Recipe> RecipeTableView;
+    @FXML private TableColumn<Recipe, String> doctorColumn;
+    @FXML private TableColumn<Recipe, String> descriptionColumn;
+    @FXML private Button buttonDownloadRecipes;
+    @FXML private TableColumn<Recipe, String> issueDateColumn;
+    @FXML private Label usernameLabel;
 
     private RecipeService recipeService = new RecipeService();
 
@@ -72,6 +58,7 @@ public class PatientDashboardController implements Initializable {
     public void setCurrentUser(IPatient currentUser) {
         this.currentUser = currentUser;
         this.patientName = currentUser.getUsername();
+        usernameLabel.setText(patientName);
         loadRecipesForPatient();
     }
 
@@ -139,18 +126,14 @@ public class PatientDashboardController implements Initializable {
         }
     }
 
-
     private void initializeRecipeTable() {
         doctorColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDoctorName()));
         descriptionColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
         issueDateColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIssueDate().toString()));
     }
 
-
-
     @FXML
     private void handleConfirmVisit() {
-
         System.out.println("handleConfirmVisit called");
 
         String selectedDoctorName = doctorComboBox.getValue();
@@ -184,6 +167,10 @@ public class PatientDashboardController implements Initializable {
                 out.writeObject(message);
                 out.flush();
                 System.out.println("Wiadomość wysłana pomyślnie");
+
+                doctorComboBox.getSelectionModel().clearSelection();
+                hourComboBox.getSelectionModel().clearSelection();
+                visitDatePicker.setValue(null);
 
             } catch (IOException e) {
                 System.err.println("Błąd podczas wysyłania wiadomości:");

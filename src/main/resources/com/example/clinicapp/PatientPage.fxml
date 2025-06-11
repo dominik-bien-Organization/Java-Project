@@ -26,7 +26,7 @@
                      <font><Font size="32.0" /></font>
                   </Label>
                   <Label layoutX="119.0" layoutY="166.0" text="Pacjent" />
-                  <TextField fx:id="login_username" layoutX="49.0" layoutY="214.0" prefWidth="250.0" prefHeight="30.0" promptText="Nazwa Użytkownika" />
+                  <TextField fx:id="login_email" layoutX="49.0" layoutY="214.0" prefWidth="250.0" prefHeight="30.0" promptText="Adres email" />
                   <PasswordField fx:id="login_password" layoutX="49.0" layoutY="260.0" prefWidth="250.0" prefHeight="30.0" promptText="Hasło" />
                   <TextField fx:id="login_showPassword" layoutX="49.0" layoutY="262.0" prefWidth="250.0" prefHeight="26.0" visible="false" />
                   <CheckBox fx:id="login_checkbox" layoutX="49.0" layoutY="307.0" onAction="#loginShowPassword" text="Pokaż hasło">
@@ -54,7 +54,7 @@
                   </Label>
                   <Label layoutX="119.0" layoutY="166.0" text="Pacjent" />
                   <TextField fx:id="register_username" layoutX="49.0" layoutY="214.0" prefWidth="250.0" prefHeight="30.0" promptText="Nazwa Użytkownika" />
-                  <TextField fx:id="register_email" layoutX="49.0" layoutY="268.0" prefWidth="250.0" prefHeight="26.0" promptText="Email" />
+                  <TextField fx:id="register_email" layoutX="49.0" layoutY="268.0" prefWidth="250.0" prefHeight="26.0" promptText="Adres email" />
                   <PasswordField fx:id="register_password" layoutX="49.0" layoutY="313.0" prefWidth="250.0" prefHeight="30.0" promptText="Hasło" />
                   <TextField fx:id="register_showPassword" layoutX="51.0" layoutY="316.0" prefWidth="250.0" prefHeight="26.0" visible="false" />
                   <CheckBox fx:id="register_checkbox" layoutX="51.0" layoutY="357.0" text="Pokaż hasło" onAction="#registerShowPassword">
