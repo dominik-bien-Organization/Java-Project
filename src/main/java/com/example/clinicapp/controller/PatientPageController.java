@@ -23,6 +23,8 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class PatientPageController implements Initializable {
+    private static final int SERVER_PORT = 12345;
+    private static final String SERVER_IP = "192.168.1.111";
 
     @FXML private Button login_button;
     @FXML private CheckBox login_checkbox;
@@ -44,8 +46,6 @@ public class PatientPageController implements Initializable {
     private AlertMessage alert = new AlertMessage();
     private PatientService patientService = new PatientService();
     private ClinicClient clinicClient;
-
-
 
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
@@ -148,10 +148,8 @@ public class PatientPageController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/clinicapp/PatientDashboard.fxml"));
             Parent root = loader.load();
 
-
             // Pobierz kontroler i ustaw zalogowanego pacjenta
             PatientDashboardController controller = loader.getController();
-
 
             controller.setClient(clinicClient);
 
@@ -223,7 +221,7 @@ public class PatientPageController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         try {
-            clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
+            clinicClient = new ClinicClient(SERVER_IP, SERVER_PORT, this::onServerMessage);
             clinicClient.startListening();
         } catch (IOException e) {
             alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());

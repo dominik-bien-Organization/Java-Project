@@ -22,6 +22,8 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class DoctorPageController implements Initializable {
+    private static final int SERVER_PORT = 12345;
+    private static final String SERVER_IP = "192.168.1.111";
 
     @FXML private Button login_button;
     @FXML private CheckBox login_checkbox;
@@ -232,7 +234,7 @@ public class DoctorPageController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         try {
-            clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
+            clinicClient = new ClinicClient(SERVER_IP, SERVER_PORT, this::onServerMessage);
             clinicClient.startListening();
         } catch (IOException e) {
             alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
