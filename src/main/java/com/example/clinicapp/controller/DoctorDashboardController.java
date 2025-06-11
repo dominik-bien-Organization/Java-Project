@@ -59,8 +59,6 @@ public class DoctorDashboardController implements Initializable {
         sendGetAppointmentsIfReady();
     }
 
-
-
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
         clinicClient.setMessageListener(this::handleNetworkMessage);
@@ -156,7 +154,6 @@ public class DoctorDashboardController implements Initializable {
         appointmentTable.setItems(appointmentList);
 
         loadPatients();
-
     }
 
     private void loadPatients() {
@@ -175,7 +172,6 @@ public class DoctorDashboardController implements Initializable {
             case RECIPE_SAVE_FAILED:
                 Platform.runLater(() -> new AlertMessage().errorMessage("Nie udało się zapisać recepty."));
                 break;
-
 
             case APPOINTMENT_LIST:
                 List<Appointment> list = (List<Appointment>) message.getPayload();

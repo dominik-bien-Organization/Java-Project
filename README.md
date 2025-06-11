@@ -1,11 +1,10 @@
 # 🏥 ClinicApp – JavaFX Desktop Application
 
-ClinicApp is a simple desktop application built with Java and JavaFX to simulate a basic clinic management system. It supports doctor registration and login with secure password hashing and a MySQL 8.0 database managed via Docker.
+ClinicApp is a simple desktop application built with Java and JavaFX to simulate a basic clinic management system. It supports doctor registration and login and a MySQL 8.0 database managed via Docker.
 
 ## 🚀 Features
 
 - 👨‍⚕️ **Doctor Registration & Login** – secure registration and login for doctors
-- 🔐 **BCrypt-based password hashing** – st rong password hashing for security
 - 🖥️ **JavaFX UI** – clean, responsive interface
 - 🐬 **MySQL 8.0 via Docker** – portable, reproducible database
 - 🔌 **JDBC Integration** – direct MySQL connectivity
