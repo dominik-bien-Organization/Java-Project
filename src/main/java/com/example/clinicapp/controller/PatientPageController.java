@@ -21,6 +21,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class PatientPageController implements Initializable {
 
@@ -65,25 +70,44 @@ public class PatientPageController implements Initializable {
             return;
         }
 
-        Optional<Patient> patientOpt = patientService.login(username, password);
-        if (patientOpt.isPresent()) {
-            alert.successMessage("Logowanie wykonano pomyślnie!");
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
-            if (clinicClient != null && clinicClient.isConnected()) {
-                try {
-                    clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
+        Callable<Optional<Patient>> loginTask = () -> patientService.login(username, password);
+
+        Future<Optional<Patient>> future = executor.submit(loginTask);
+
+        // Uruchamiamy wątek obsługujący asynchroniczne logowanie
+        new Thread(() -> {
+            try {
+                Optional<Patient> patientOpt = future.get(); // blokuje, ale to w osobnym wątku
+
+                Platform.runLater(() -> {
+                    if (patientOpt.isPresent()) {
+                        alert.successMessage("Logowanie wykonano pomyślnie!");
+
+                        if (clinicClient != null && clinicClient.isConnected()) {
+                            try {
+                                clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
                             username + ":" + password + ":"));
-                } catch (IOException e) {
-                    alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
-                }
-            } else {
-                alert.errorMessage("Brak połączenia z serwerem.");
-            }
+                            } catch (IOException e) {
+                                alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+                            }
+                        } else {
+                            alert.errorMessage("Brak połączenia z serwerem.");
+                        }
 
             openClinicSystem(patientOpt.get()); // otwarcie GUI po logowaniu
-        } else {
+                    } else {
             alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
-        }
+                    }
+                });
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                Platform.runLater(() -> alert.errorMessage("Błąd podczas logowania: " + e.getMessage()));
+            } finally {
+                executor.shutdown();
+            }
+        }).start();
     }
 
     public void registerAccount() {
