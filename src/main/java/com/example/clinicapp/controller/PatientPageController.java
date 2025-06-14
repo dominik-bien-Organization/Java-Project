@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.*;
 
 public class PatientPageController implements Initializable {
 
@@ -45,6 +46,10 @@ public class PatientPageController implements Initializable {
     private PatientService patientService = new PatientService();
     private ClinicClient clinicClient;
 
+    // ExecutorService do uruchamiania zadań w tle.
+    // Dobre praktyki sugerują zarządzanie cyklem życia executora,
+    // np. zamykanie go przy zamykaniu aplikacji.
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
 
     public void setClinicClient(ClinicClient clinicClient) {
@@ -65,25 +70,61 @@ public class PatientPageController implements Initializable {
             return;
         }
 
-        Optional<Patient> patientOpt = patientService.login(username, password);
-        if (patientOpt.isPresent()) {
-            alert.successMessage("Logowanie wykonano pomyślnie!");
+        // Zablokuj przycisk, aby zapobiec wielokrotnym kliknięciom
+        login_button.setDisable(true);
 
-            if (clinicClient != null && clinicClient.isConnected()) {
-                try {
-                    clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
-                            username + ":" + password + ":"));
-                } catch (IOException e) {
-                    alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
-                }
-            } else {
-                alert.errorMessage("Brak połączenia z serwerem.");
+        // 1. Zdefiniuj zadanie (Callable), które wykonuje logowanie w tle
+        Callable<Optional<Patient>> loginTask = () -> {
+            System.out.println("Zadanie logowania uruchomione w wątku: " + Thread.currentThread().getName());
+            // Ta operacja może być czasochłonna (zapytanie do bazy danych)
+            return patientService.login(username, password);
+        };
+
+        // 2. Prześlij zadanie do wykonania i uzyskaj obiekt Future
+        Future<Optional<Patient>> future = executor.submit(loginTask);
+
+        // 3. W nowym wątku oczekuj na wynik, a następnie zaktualizuj UI
+        new Thread(() -> {
+            try {
+                // Czekaj na zakończenie zadania i pobierz wynik (blokuje bieżący wątek, a nie wątek UI)
+                final Optional<Patient> patientOpt = future.get();
+
+                // Po otrzymaniu wyniku, zaktualizuj UI w wątku JavaFX
+                Platform.runLater(() -> {
+                    if (patientOpt.isPresent()) {
+                        // Logowanie pomyślne
+                        alert.successMessage("Logowanie wykonano pomyślnie!");
+
+                        if (clinicClient != null && clinicClient.isConnected()) {
+                            try {
+                                clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
+                                        username + ":" + password + ":"));
+                            } catch (IOException e) {
+                                alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+                            }
+                        } else {
+                            alert.errorMessage("Brak połączenia z serwerem.");
+                        }
+                        openClinicSystem(patientOpt.get());
+
+                    } else {
+                        // Logowanie nieudane
+                        alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
+                    }
+
+                    // Odblokuj przycisk po zakończeniu operacji
+                    login_button.setDisable(false);
+                });
+
+            } catch (InterruptedException | ExecutionException e) {
+                // Obsługa błędów, które wystąpiły podczas wykonywania zadania w tle
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    alert.errorMessage("Wystąpił błąd podczas logowania: " + e.getMessage());
+                    login_button.setDisable(false);
+                });
             }
-
-            openClinicSystem(patientOpt.get()); // otwarcie GUI po logowaniu
-        } else {
-            alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
-        }
+        }).start();
     }
 
     public void registerAccount() {
@@ -127,18 +168,18 @@ public class PatientPageController implements Initializable {
 
             switch (msg.getType()) {
                 case LOGIN:
-                    alert.successMessage("Zalogowano pomyślnie!");
+                    // Można usunąć, bo alert wyświetla się już po pomyślnym logowaniu lokalnym
+                    // alert.successMessage("Zalogowano pomyślnie na serwerze!");
                     break;
                 case BOOKING_CONFIRMED:
                     alert.successMessage("Twoja wizyta została pomyślnie zarezerwowana!");
                     break;
-
                 case BOOKING_CANCELLED:
                     alert.errorMessage("Rezerwacja wizyty nie powiodła się.");
                     break;
-
                 default:
-                    alert.errorMessage("Nieznany typ wiadomości.");
+                    // Lepsza obsługa nieznanych wiadomości
+                    // alert.errorMessage("Nieznany typ wiadomości.");
             }
         });
     }
@@ -152,11 +193,9 @@ public class PatientPageController implements Initializable {
             // Pobierz kontroler i ustaw zalogowanego pacjenta
             PatientDashboardController controller = loader.getController();
 
-
             controller.setClient(clinicClient);
-
             controller.setCurrentUser(loggedPatient);
-            controller.setOutputStream(clinicClient.getOut()); // jeśli masz dostęp do tego strumienia
+            controller.setOutputStream(clinicClient.getOut());
             controller.setClient(clinicClient);
 
             Stage stage = (Stage) login_button.getScene().getWindow();
@@ -216,14 +255,15 @@ public class PatientPageController implements Initializable {
     void handleBackButton(ActionEvent event) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("/com/example/clinicapp/LoginChoice.fxml"));
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-
         stage.setScene(new Scene(root));
     }
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         try {
-            clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
+            // Pamiętaj, aby tutaj wpisać poprawny adres IP serwera, jeśli nie testujesz lokalnie
+            String serverIp = "localhost"; // lub np. "192.168.1.105"
+            clinicClient = new ClinicClient(serverIp, 12345, this::onServerMessage);
             clinicClient.startListening();
         } catch (IOException e) {
             alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
