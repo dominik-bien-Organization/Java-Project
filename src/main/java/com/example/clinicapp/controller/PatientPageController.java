@@ -4,7 +4,7 @@ import com.example.clinicapp.model.Patient;
 import com.example.clinicapp.network.ClinicClient;
 import com.example.clinicapp.network.MessageType;
 import com.example.clinicapp.network.NetworkMessage;
-import com.example.clinicapp.service.PatientService;
+import com.example.clinicapp.client.service.PatientService;
 import com.example.clinicapp.util.AlertMessage;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -43,8 +43,10 @@ public class PatientPageController implements Initializable {
     @FXML private TextField register_username;
 
     private AlertMessage alert = new AlertMessage();
-    private PatientService patientService = new PatientService();
+    private PatientService patientService;
     private ClinicClient clinicClient;
+
+
 
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
@@ -177,12 +179,14 @@ public class PatientPageController implements Initializable {
             // Pobierz kontroler i ustaw zalogowanego pacjenta
             PatientDashboardController controller = loader.getController();
 
-
+            // Set the client first (initializes services and loads doctors list)
             controller.setClient(clinicClient);
 
+            // Then set the current user (loads recipes)
             controller.setCurrentUser(loggedPatient);
-            controller.setOutputStream(clinicClient.getOut()); // jeśli masz dostęp do tego strumienia
-            controller.setClient(clinicClient);
+
+            // This is deprecated and redundant since we're using setClient
+            // controller.setOutputStream(clinicClient.getOut());
 
             Stage stage = (Stage) login_button.getScene().getWindow();
             stage.setScene(new Scene(root));
@@ -250,9 +254,17 @@ public class PatientPageController implements Initializable {
         try {
             clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
             // No need to call startListening() as it will be called automatically by sendMessageAndWaitForResponse()
+
+            // Initialize the client-side service with the clinic client
+            patientService = new PatientService(clinicClient);
         } catch (IOException e) {
-            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
+            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage() + 
+                              "\nAplikacja wymaga połączenia z serwerem do działania.");
             clinicClient = null;
+
+            // Disable login and register buttons
+            login_button.setDisable(true);
+            register_button.setDisable(true);
         }
     }
 }

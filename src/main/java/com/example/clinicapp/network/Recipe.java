@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 
 public class Recipe implements Serializable {
+    private static final long serialVersionUID = 3L;
     private String patientName;    // username pacjenta
     private String description;    // opis recepty
     private LocalDate issueDate;   // data wystawienia

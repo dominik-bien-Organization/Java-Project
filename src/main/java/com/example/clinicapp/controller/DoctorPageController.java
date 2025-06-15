@@ -4,7 +4,7 @@ import com.example.clinicapp.model.Doctor;
 import com.example.clinicapp.network.ClinicClient;
 import com.example.clinicapp.network.MessageType;
 import com.example.clinicapp.network.NetworkMessage;
-import com.example.clinicapp.service.DoctorService;
+import com.example.clinicapp.client.service.DoctorService;
 import com.example.clinicapp.util.AlertMessage;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -41,7 +41,7 @@ public class DoctorPageController implements Initializable {
     @FXML private TextField register_fullName;
 
     private AlertMessage alert = new AlertMessage();
-    private DoctorService doctorService = new DoctorService();
+    private DoctorService doctorService;
     private ClinicClient clinicClient;
 
     public void loginAccount() {
@@ -239,9 +239,17 @@ public class DoctorPageController implements Initializable {
         try {
             clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
             // No need to call startListening() as it will be called automatically by sendMessageAndWaitForResponse()
+
+            // Initialize the client-side service with the clinic client
+            doctorService = new DoctorService(clinicClient);
         } catch (IOException e) {
-            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
-            clinicClient = null; // lub inna obsługa
+            alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage() + 
+                              "\nAplikacja wymaga połączenia z serwerem do działania.");
+            clinicClient = null;
+
+            // Disable login and register buttons
+            login_button.setDisable(true);
+            register_button.setDisable(true);
         }
     }
 }

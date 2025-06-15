@@ -4,8 +4,8 @@ import com.example.clinicapp.files.FileHelper;
 import com.example.clinicapp.interfaces.IPatient;
 import com.example.clinicapp.model.Doctor;
 import com.example.clinicapp.network.*;
-import com.example.clinicapp.service.DoctorService;
-import com.example.clinicapp.service.RecipeService;
+import com.example.clinicapp.client.service.DoctorService;
+import com.example.clinicapp.client.service.RecipeService;
 import com.example.clinicapp.util.AlertMessage;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -41,12 +41,14 @@ public class PatientDashboardController implements Initializable {
     @FXML private Button buttonDownloadRecipes;
     @FXML private TableColumn<Recipe, String> issueDateColumn;
 
-    private RecipeService recipeService = new RecipeService();
-    private final DoctorService doctorService = new DoctorService();
+    private RecipeService recipeService;
+    private DoctorService doctorService;
 
     private IPatient currentUser;
     private ClinicClient client;
     private String patientName;
+    private volatile boolean running = true;
+    private Thread reloaderThread;
 
     public void setCurrentUser(IPatient currentUser) {
         this.currentUser = currentUser;
@@ -63,24 +65,29 @@ public class PatientDashboardController implements Initializable {
     }
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        loadDoctorsToComboBox();
         loadAvailableHours();
         initializeRecipeTable();
         buttonDownloadRecipes.setOnAction(e -> handleDownloadRecipes());
 
-        var reloader = new Thread(this::reloadRecipies);
-        reloader.start();
+        reloaderThread = new Thread(this::reloadRecipies);
+        reloaderThread.setDaemon(true);
+        reloaderThread.start();
     }
 
     public void reloadRecipies() {
-        while (true) {
+        while (running) {
             try {
                 Thread.sleep(Duration.ofSeconds(1));
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                // Thread was interrupted, exit the loop
+                break;
             }
-            loadRecipesForPatient();
+
+            if (running) {
+                loadRecipesForPatient();
+            }
         }
+        System.out.println("Recipe reloader thread stopped");
     }
 
     private void loadAvailableHours() {
@@ -92,7 +99,7 @@ public class PatientDashboardController implements Initializable {
     }
 
     public void loadRecipesForPatient() {
-        if (currentUser == null) return;
+        if (currentUser == null || recipeService == null) return;
 
         List<Recipe> recipes = recipeService.getRecipesByPatientId(currentUser.getId());
         ObservableList<Recipe> observableRecipes = FXCollections.observableArrayList(recipes);
@@ -103,6 +110,12 @@ public class PatientDashboardController implements Initializable {
     @FXML
     private void handleLogout() {
         try {
+            // Stop the recipe reloader thread
+            running = false;
+            if (reloaderThread != null) {
+                reloaderThread.interrupt();
+            }
+
             if (currentUser != null && client != null) {
                 // Wyślij wiadomość LOGOUT (załóżmy, że pacjent ma metodę getUsername())
                 NetworkMessage logoutMsg = new NetworkMessage(MessageType.LOGOUT, currentUser.getUsername());
@@ -212,18 +225,34 @@ public class PatientDashboardController implements Initializable {
     }
 
     private void loadDoctorsToComboBox() {
-        List<Doctor> doctors = doctorService.getAllDoctors();
-        ObservableList<String> doctorNames = FXCollections.observableArrayList();
+        if (doctorService != null) {
+            List<Doctor> doctors = doctorService.getAllDoctors();
+            ObservableList<String> doctorNames = FXCollections.observableArrayList();
 
-        for (Doctor doc : doctors) {
-            doctorNames.add(doc.getFullname() + " (id: " + doc.getId() + ")");
+            for (Doctor doc : doctors) {
+                doctorNames.add(doc.getFullname() + " (id: " + doc.getId() + ")");
+            }
+
+            doctorComboBox.setItems(doctorNames);
+        } else {
+            Platform.runLater(() -> new AlertMessage().errorMessage("Nie można załadować listy lekarzy - brak połączenia z serwerem."));
         }
-
-        doctorComboBox.setItems(doctorNames);
     }
     public void setClient(ClinicClient client) {
         this.client = client;
         client.setMessageListener(this::handleServerResponse);
+
+        // Initialize the client-side services with the clinic client
+        this.doctorService = new DoctorService(client);
+        this.recipeService = new RecipeService(client);
+
+        // Load doctors list now that we have a client connection
+        loadDoctorsToComboBox();
+
+        // Reload recipes if we have a current user
+        if (currentUser != null) {
+            loadRecipesForPatient();
+        }
     }
 
     private void handleServerResponse(NetworkMessage message) {

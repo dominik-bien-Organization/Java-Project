@@ -3,8 +3,8 @@ package com.example.clinicapp.controller;
 import com.example.clinicapp.model.Doctor;
 import com.example.clinicapp.model.Patient;
 import com.example.clinicapp.network.*;
-import com.example.clinicapp.service.DoctorService;
-import com.example.clinicapp.service.PatientService;
+import com.example.clinicapp.client.service.DoctorService;
+import com.example.clinicapp.client.service.PatientService;
 import com.example.clinicapp.util.AlertMessage;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -46,12 +46,14 @@ public class DoctorDashboardController implements Initializable {
     @FXML private TextArea txtDescription;
     @FXML private DatePicker datePickerIssueDate;
 
-    private PatientService patientService = new PatientService();
+    private PatientService patientService;
 
     private Doctor doctor;
-    private final DoctorService doctorService = new DoctorService();
+    private DoctorService doctorService;
     private ClinicClient clinicClient;
     private final ObservableList<Appointment> appointmentList = FXCollections.observableArrayList();
+    private volatile boolean running = true;
+    private Thread reloaderThread;
 
     public void setDoctor(Doctor doctor) {
         this.doctor = doctor;
@@ -62,6 +64,14 @@ public class DoctorDashboardController implements Initializable {
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
         clinicClient.setMessageListener(this::handleNetworkMessage);
+
+        // Initialize the client-side services with the clinic client
+        this.doctorService = new DoctorService(clinicClient);
+        this.patientService = new PatientService(clinicClient);
+
+        // Load data from server
+        loadStatistics();
+        loadPatients();
         sendGetAppointmentsIfReady();
     }
     private void sendGetAppointmentsIfReady() {
@@ -89,6 +99,12 @@ public class DoctorDashboardController implements Initializable {
     @FXML
     private void handleLogout() {
         try {
+            // Stop the appointment reloader thread
+            running = false;
+            if (reloaderThread != null) {
+                reloaderThread.interrupt();
+            }
+
             if (doctor != null && clinicClient != null) {
                 // No need to wait for a response when logging out
                 clinicClient.sendMessageAndWaitForResponse(
@@ -155,22 +171,6 @@ public class DoctorDashboardController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Wykres: pacjenci z ostatnich 7 dni
-        Map<String, Integer> patientsPerDay = doctorService.getPatientsLast7Days();
-
-        xAxis.setLabel("Data");
-        yAxis.setLabel("Ilość");
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Pacjenci na ostatnie 7 dni");
-
-        for (Map.Entry<String, Integer> entry : patientsPerDay.entrySet()) {
-            series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
-        }
-
-        barChartPatients.getData().clear();
-        barChartPatients.getData().add(series);
-
         // Kolumny tabeli
         colPatient.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getPatientName()));
         colDate.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getDate().toString()));
@@ -179,27 +179,60 @@ public class DoctorDashboardController implements Initializable {
         // Ustawienie danych
         appointmentTable.setItems(appointmentList);
 
-        loadPatients();
+        // Wykres i lista pacjentów będą załadowane po ustawieniu doctorService w setClinicClient
+        xAxis.setLabel("Data");
+        yAxis.setLabel("Ilość");
 
-        var reloader = new Thread(this::reloadAppointments);
-        reloader.start();
+        reloaderThread = new Thread(this::reloadAppointments);
+        reloaderThread.setDaemon(true);
+        reloaderThread.start();
     }
 
-    public void reloadAppointments() {
-        while (true) {
-            try {
-                Thread.sleep(Duration.ofSeconds(1));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+    private void loadStatistics() {
+        if (doctorService != null) {
+            // Wykres: pacjenci z ostatnich 7 dni
+            Map<String, Integer> patientsPerDay = doctorService.getPatientsLast7Days();
+
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName("Pacjenci na ostatnie 7 dni");
+
+            for (Map.Entry<String, Integer> entry : patientsPerDay.entrySet()) {
+                series.getData().add(new XYChart.Data<>(entry.getKey(), entry.getValue()));
             }
-            sendGetAppointmentsIfReady();
+
+            Platform.runLater(() -> {
+                barChartPatients.getData().clear();
+                barChartPatients.getData().add(series);
+            });
+        } else {
+            Platform.runLater(() -> new AlertMessage().errorMessage("Nie można załadować statystyk - brak połączenia z serwerem."));
         }
     }
 
+    public void reloadAppointments() {
+        while (running) {
+            try {
+                Thread.sleep(Duration.ofSeconds(1));
+            } catch (InterruptedException e) {
+                // Thread was interrupted, exit the loop
+                break;
+            }
+
+            if (running) {
+                sendGetAppointmentsIfReady();
+            }
+        }
+        System.out.println("Appointment reloader thread stopped");
+    }
+
     private void loadPatients() {
-        List<Patient> patientsList = patientService.getAllPatients();
-        ObservableList<Patient> observablePatients = FXCollections.observableArrayList(patientsList);
-        comboPatients.setItems(observablePatients);
+        if (patientService != null) {
+            List<Patient> patientsList = patientService.getAllPatients();
+            ObservableList<Patient> observablePatients = FXCollections.observableArrayList(patientsList);
+            comboPatients.setItems(observablePatients);
+        } else {
+            Platform.runLater(() -> new AlertMessage().errorMessage("Nie można załadować listy pacjentów - brak połączenia z serwerem."));
+        }
     }
 
     public void handleNetworkMessage(NetworkMessage message) {

@@ -1,10 +1,14 @@
 package com.example.clinicapp.server;
 
+import com.example.clinicapp.model.Doctor;
+import com.example.clinicapp.model.Patient;
 import com.example.clinicapp.network.Appointment;
 import com.example.clinicapp.network.MessageType;
 import com.example.clinicapp.network.NetworkMessage;
 import com.example.clinicapp.network.Recipe;
 import com.example.clinicapp.service.AppointmentService;
+import com.example.clinicapp.service.DoctorService;
+import com.example.clinicapp.service.PatientService;
 import com.example.clinicapp.service.RecipeService;
 import javafx.application.Platform;
 
@@ -30,6 +34,9 @@ public class ClientHandler implements Runnable {
     private volatile boolean running = true;
     private int doctorId = -1;
     private final AppointmentService appointmentService = new AppointmentService();
+    private final DoctorService doctorService = new DoctorService();
+    private final PatientService patientService = new PatientService();
+    private final RecipeService recipeService = new RecipeService();
 
     public ClientHandler(Socket socket, Map<String, ClientHandler> clients,
                          Consumer<String> logger, Consumer<Map<String, ClientHandler>> clientsListUpdater) {
@@ -125,17 +132,15 @@ public class ClientHandler implements Runnable {
                 break;
             case SAVE_RECIPE:
                 Recipe recipe = (Recipe) message.getPayload();
-                RecipeService recipeService = new RecipeService();
                 boolean saved = recipeService.saveRecipe(recipe);
 
-                    if (saved) {
-                        sendMessage(new NetworkMessage(MessageType.RECIPE_SAVED, null));
-                        logger.accept("Recepta zapisana: " + recipe);
-                    } else {
-                        sendMessage(new NetworkMessage(MessageType.RECIPE_SAVE_FAILED, null));
-                        logger.accept("Nie udało się zapisać recepty: " + recipe);
-                    }
-
+                if (saved) {
+                    sendMessage(new NetworkMessage(MessageType.RECIPE_SAVED, null));
+                    logger.accept("Recepta zapisana: " + recipe);
+                } else {
+                    sendMessage(new NetworkMessage(MessageType.RECIPE_SAVE_FAILED, null));
+                    logger.accept("Nie udało się zapisać recepty: " + recipe);
+                }
                 break;
             case LOGOUT:
                 String logoutEmail = (String) message.getPayload();
@@ -155,6 +160,82 @@ public class ClientHandler implements Runnable {
                 running = false;
                 return;
 
+            // Doctor related messages
+            case REGISTER_DOCTOR:
+                Doctor doctor = (Doctor) message.getPayload();
+                try {
+                    if (doctorService.isEmailExists(doctor.getEmail())) {
+                        sendMessage(new NetworkMessage(MessageType.DOCTOR_REGISTER_FAILED, "Email already exists"));
+                        logger.accept("Rejestracja lekarza nieudana - email już istnieje: " + doctor.getEmail());
+                    } else {
+                        doctorService.register(doctor);
+                        sendMessage(new NetworkMessage(MessageType.DOCTOR_REGISTERED, null));
+                        logger.accept("Zarejestrowano lekarza: " + doctor.getFullname());
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    sendMessage(new NetworkMessage(MessageType.DOCTOR_REGISTER_FAILED, e.getMessage()));
+                    logger.accept("Błąd podczas rejestracji lekarza: " + e.getMessage());
+                }
+                break;
+
+            case CHECK_DOCTOR_EMAIL_EXISTS:
+                String doctorEmail = (String) message.getPayload();
+                try {
+                    boolean exists = doctorService.isEmailExists(doctorEmail);
+                    sendMessage(new NetworkMessage(MessageType.DOCTOR_EMAIL_EXISTS_RESULT, exists));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    sendMessage(new NetworkMessage(MessageType.DOCTOR_EMAIL_EXISTS_RESULT, false));
+                    logger.accept("Błąd podczas sprawdzania emaila lekarza: " + e.getMessage());
+                }
+                break;
+
+            case GET_ALL_DOCTORS:
+                List<Doctor> doctors = doctorService.getAllDoctors();
+                sendMessage(new NetworkMessage(MessageType.ALL_DOCTORS_LIST, doctors));
+                break;
+
+            // Patient related messages
+            case REGISTER_PATIENT:
+                String[] patientData = ((String) message.getPayload()).split(":");
+                String patientEmail = patientData[0];
+                String patientUsername = patientData[1];
+                String patientPassword = patientData[2];
+
+                try {
+                    boolean registered = patientService.register(patientEmail, patientUsername, patientPassword);
+                    if (registered) {
+                        sendMessage(new NetworkMessage(MessageType.PATIENT_REGISTERED, null));
+                        logger.accept("Zarejestrowano pacjenta: " + patientUsername);
+                    } else {
+                        sendMessage(new NetworkMessage(MessageType.PATIENT_REGISTER_FAILED, "Username already exists"));
+                        logger.accept("Rejestracja pacjenta nieudana - nazwa użytkownika już istnieje: " + patientUsername);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sendMessage(new NetworkMessage(MessageType.PATIENT_REGISTER_FAILED, e.getMessage()));
+                    logger.accept("Błąd podczas rejestracji pacjenta: " + e.getMessage());
+                }
+                break;
+
+            case GET_ALL_PATIENTS:
+                List<Patient> patients = patientService.getAllPatients();
+                sendMessage(new NetworkMessage(MessageType.ALL_PATIENTS_LIST, patients));
+                break;
+
+            // Recipe related messages
+            case GET_RECIPES_FOR_PATIENT:
+                int patientId = (int) message.getPayload();
+                List<Recipe> recipes = recipeService.getRecipesByPatientId(patientId);
+                sendMessage(new NetworkMessage(MessageType.PATIENT_RECIPES_LIST, recipes));
+                break;
+
+            // Statistics related messages
+            case GET_PATIENTS_LAST_7_DAYS:
+                Map<String, Integer> patientsData = doctorService.getPatientsLast7Days();
+                sendMessage(new NetworkMessage(MessageType.PATIENTS_LAST_7_DAYS_DATA, patientsData));
+                break;
 
             default:
                 this.logger.accept("Odebrano nieznany typ wiadomości: " + String.valueOf(message.getType()));
