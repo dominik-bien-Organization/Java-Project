@@ -20,7 +20,7 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
+// Removed ObjectOutputStream import as we're using ClinicClient directly
 import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -30,40 +30,23 @@ import java.util.ResourceBundle;
 
 public class PatientDashboardController implements Initializable {
 
-    @FXML
-    private ComboBox<String> doctorComboBox;
-
+    @FXML private ComboBox<String> doctorComboBox;
     @FXML private ComboBox<String> hourComboBox;
     @FXML private DatePicker visitDatePicker;
+    @FXML private Button logoutButton;
 
-
-    @FXML
-    private Button logoutButton;
-
-    @FXML
-    private TableView<Recipe> RecipeTableView;
-
-    @FXML
-    private TableColumn<Recipe, String> doctorColumn;
-
-    @FXML
-    private TableColumn<Recipe, String> descriptionColumn;
-
-    @FXML
-    private Button buttonDownloadRecipes;
-
-    @FXML
-    private TableColumn<Recipe, String> issueDateColumn;
+    @FXML private TableView<Recipe> RecipeTableView;
+    @FXML private TableColumn<Recipe, String> doctorColumn;
+    @FXML private TableColumn<Recipe, String> descriptionColumn;
+    @FXML private Button buttonDownloadRecipes;
+    @FXML private TableColumn<Recipe, String> issueDateColumn;
 
     private RecipeService recipeService = new RecipeService();
-
     private final DoctorService doctorService = new DoctorService();
 
     private IPatient currentUser;
-    private ObjectOutputStream out;
-
+    private ClinicClient client;
     private String patientName;
-
 
     public void setCurrentUser(IPatient currentUser) {
         this.currentUser = currentUser;
@@ -71,9 +54,12 @@ public class PatientDashboardController implements Initializable {
         loadRecipesForPatient();
     }
 
-    public void setOutputStream(ObjectOutputStream out) {
-        this.out = out;
-        System.out.println("setOutputStream called, out=" + out);
+    /**
+     * @deprecated Use setClient(ClinicClient) instead
+     */
+    @Deprecated
+    public void setOutputStream(Object out) {
+        System.out.println("setOutputStream is deprecated, use setClient(ClinicClient) instead");
     }
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -117,17 +103,15 @@ public class PatientDashboardController implements Initializable {
     @FXML
     private void handleLogout() {
         try {
-            if (currentUser != null && out != null) {
+            if (currentUser != null && client != null) {
                 // Wyślij wiadomość LOGOUT (załóżmy, że pacjent ma metodę getUsername())
                 NetworkMessage logoutMsg = new NetworkMessage(MessageType.LOGOUT, currentUser.getUsername());
-                out.writeObject(logoutMsg);
-                out.flush();
 
-                // Odczekaj krótko (jeśli potrzeba, np. 200 ms)
-                Thread.sleep(200);
+                // No need to wait for a response when logging out
+                client.sendMessageAndWaitForResponse(logoutMsg, MessageType.LOGOUT, 1000);
 
-                // Tu można zamknąć połączenie, jeśli masz referencję do klienta sieciowego (ClinicClient)
-                // np. clinicClient.close(); (w zależności od implementacji)
+                // Close the client connection
+                client.close();
             }
 
             // Załaduj scenę logowania pacjenta (zamień na właściwą ścieżkę FXML)
@@ -149,14 +133,11 @@ public class PatientDashboardController implements Initializable {
         }
     }
 
-
     private void initializeRecipeTable() {
         doctorColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDoctorName()));
         descriptionColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getDescription()));
         issueDateColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getIssueDate().toString()));
     }
-
-
 
     @FXML
     private void handleConfirmVisit() {
@@ -191,13 +172,27 @@ public class PatientDashboardController implements Initializable {
             try {
                 System.out.println("Wysyłanie wiadomości BOOK_APPOINTMENT do serwera");
 
-                out.writeObject(message);
-                out.flush();
-                System.out.println("Wiadomość wysłana pomyślnie");
+                NetworkMessage response = client.sendMessageAndWaitForResponse(
+                        message,
+                        new MessageType[]{MessageType.BOOKING_CONFIRMED, MessageType.BOOKING_CANCELLED},
+                        5000); // 5 seconds timeout
+
+                if (response != null) {
+                    handleServerResponse(response);
+                    System.out.println("Wiadomość wysłana pomyślnie i otrzymano odpowiedź");
+                } else {
+                    System.out.println("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie");
+                    new AlertMessage().errorMessage("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie.");
+                }
 
             } catch (IOException e) {
                 System.err.println("Błąd podczas wysyłania wiadomości:");
                 e.printStackTrace();
+                new AlertMessage().errorMessage("Błąd podczas wysyłania wiadomości: " + e.getMessage());
+            } catch (InterruptedException e) {
+                System.err.println("Operacja została przerwana:");
+                e.printStackTrace();
+                new AlertMessage().errorMessage("Operacja została przerwana: " + e.getMessage());
             }
 
         } else {
@@ -227,6 +222,7 @@ public class PatientDashboardController implements Initializable {
         doctorComboBox.setItems(doctorNames);
     }
     public void setClient(ClinicClient client) {
+        this.client = client;
         client.setMessageListener(this::handleServerResponse);
     }
 
@@ -242,7 +238,6 @@ public class PatientDashboardController implements Initializable {
             }
         });
     }
-
 
     @FXML
     private void handleDownloadRecipes() {
@@ -265,4 +260,3 @@ public class PatientDashboardController implements Initializable {
         }
     }
     }
-

@@ -67,10 +67,21 @@ public class DoctorDashboardController implements Initializable {
     private void sendGetAppointmentsIfReady() {
         if (doctor != null && clinicClient != null) {
             try {
-                clinicClient.sendMessage(new NetworkMessage(MessageType.GET_APPOINTMENTS_FOR_DOCTOR, doctor.getId()));
+                NetworkMessage response = clinicClient.sendMessageAndWaitForResponse(
+                        new NetworkMessage(MessageType.GET_APPOINTMENTS_FOR_DOCTOR, doctor.getId()),
+                        MessageType.APPOINTMENT_LIST);
+
+                if (response != null) {
+                    handleNetworkMessage(response);
+                } else {
+                    Platform.runLater(() -> new AlertMessage().errorMessage("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie."));
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 Platform.runLater(() -> new AlertMessage().errorMessage("Błąd połączenia z serwerem."));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Platform.runLater(() -> new AlertMessage().errorMessage("Operacja została przerwana."));
             }
         }
     }
@@ -79,8 +90,11 @@ public class DoctorDashboardController implements Initializable {
     private void handleLogout() {
         try {
             if (doctor != null && clinicClient != null) {
-                clinicClient.sendMessage(new NetworkMessage(MessageType.LOGOUT, doctor.getEmail()));
-                Thread.sleep(200);
+                // No need to wait for a response when logging out
+                clinicClient.sendMessageAndWaitForResponse(
+                        new NetworkMessage(MessageType.LOGOUT, doctor.getEmail()),
+                        MessageType.LOGOUT,
+                        1000); // Short timeout since we don't really expect a response
                 clinicClient.close();
             }
 
@@ -120,10 +134,22 @@ public class DoctorDashboardController implements Initializable {
         recipe.setDoctorId(doctor.getId());
 
         try {
-            clinicClient.sendMessage(new NetworkMessage(MessageType.SAVE_RECIPE, recipe));
+            NetworkMessage response = clinicClient.sendMessageAndWaitForResponse(
+                    new NetworkMessage(MessageType.SAVE_RECIPE, recipe),
+                    new MessageType[]{MessageType.RECIPE_SAVED, MessageType.RECIPE_SAVE_FAILED},
+                    5000); // 5 seconds timeout
+
+            if (response != null) {
+                handleNetworkMessage(response);
+            } else {
+                new AlertMessage().errorMessage("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie.");
+            }
         } catch (IOException e) {
             e.printStackTrace();
             new AlertMessage().errorMessage("Błąd wysłania recepty do serwera");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            new AlertMessage().errorMessage("Operacja została przerwana");
         }
     }
 
@@ -175,7 +201,6 @@ public class DoctorDashboardController implements Initializable {
         ObservableList<Patient> observablePatients = FXCollections.observableArrayList(patientsList);
         comboPatients.setItems(observablePatients);
     }
-
 
     public void handleNetworkMessage(NetworkMessage message) {
 

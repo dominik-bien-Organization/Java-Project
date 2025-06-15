@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-
-
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private Map<String, ClientHandler> clients;
@@ -90,6 +88,9 @@ public class ClientHandler implements Runnable {
                 this.clients.put(this.clientKey, this);
                 this.logger.accept("Zalogowano: " + this.clientKey + " (" + this.fullName + ")");
                 this.clientsListUpdater.accept(this.clients);
+
+                // Send login confirmation response
+                sendMessage(new NetworkMessage(MessageType.LOGIN, "Login successful"));
                 break;
 
             case BOOK_APPOINTMENT:
@@ -127,7 +128,6 @@ public class ClientHandler implements Runnable {
                 RecipeService recipeService = new RecipeService();
                 boolean saved = recipeService.saveRecipe(recipe);
 
-
                     if (saved) {
                         sendMessage(new NetworkMessage(MessageType.RECIPE_SAVED, null));
                         logger.accept("Recepta zapisana: " + recipe);
@@ -143,6 +143,9 @@ public class ClientHandler implements Runnable {
                 clients.remove(logoutEmail);
                 clientsListUpdater.accept(clients);
 
+                // Send logout confirmation response
+                sendMessage(new NetworkMessage(MessageType.LOGOUT, "Logout successful"));
+
                 try {
                     clientSocket.shutdownInput(); // <---- TO JEST KLUCZ
                     clientSocket.close();         // to wywoła wyjątek w run()
@@ -155,17 +158,13 @@ public class ClientHandler implements Runnable {
 
             default:
                 this.logger.accept("Odebrano nieznany typ wiadomości: " + String.valueOf(message.getType()));
-
-
         }
-
-
-
     }
 
     public String getFullName() {
         return fullName;
     }
+    
     private int extractDoctorIdFromFullName(String fullName) {
         // Przykładowo: "Dr Jan Kowalski (id: 3)"
         if (fullName.contains("(id:")) {

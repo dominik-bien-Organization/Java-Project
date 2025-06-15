@@ -46,8 +46,6 @@ public class PatientPageController implements Initializable {
     private PatientService patientService = new PatientService();
     private ClinicClient clinicClient;
 
-
-
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
     }
@@ -83,10 +81,17 @@ public class PatientPageController implements Initializable {
 
                         if (clinicClient != null && clinicClient.isConnected()) {
                             try {
-                                clinicClient.sendMessage(new NetworkMessage(MessageType.LOGIN,
-                                        username + ":" + password + ":"));
+                                NetworkMessage response = clinicClient.sendMessageAndWaitForResponse(
+                                        new NetworkMessage(MessageType.LOGIN, username + ":" + password + ":"),
+                                        MessageType.LOGIN);
+
+                                if (response == null) {
+                                    alert.errorMessage("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie.");
+                                }
                             } catch (IOException e) {
                                 alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+                            } catch (InterruptedException e) {
+                                alert.errorMessage("Operacja została przerwana: " + e.getMessage());
                             }
                         } else {
                             alert.errorMessage("Brak połączenia z serwerem.");
@@ -244,7 +249,7 @@ public class PatientPageController implements Initializable {
     public void initialize(URL url, ResourceBundle rb) {
         try {
             clinicClient = new ClinicClient("localhost", 12345, this::onServerMessage);
-            clinicClient.startListening();
+            // No need to call startListening() as it will be called automatically by sendMessageAndWaitForResponse()
         } catch (IOException e) {
             alert.errorMessage("Błąd połączenia z serwerem: " + e.getMessage());
             clinicClient = null;
