@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class ClientHandler implements Runnable {
@@ -160,7 +161,38 @@ public class ClientHandler implements Runnable {
                 running = false;
                 return;
 
+
             // Doctor related messages
+            case DOCTOR_LOGIN:
+                String[] doctorLoginData = ((String)message.getPayload()).split(":");
+                String doctorEmail = doctorLoginData[0];
+                String doctorPassword = doctorLoginData[1];
+
+                try {
+                    Doctor authenticatedDoctor = doctorService.login(doctorEmail, doctorPassword);
+                    if (authenticatedDoctor != null) {
+                        // Store client information
+                        this.clientKey = doctorEmail;
+                        this.fullName = "Dr " + authenticatedDoctor.getFullname() + " (id: " + authenticatedDoctor.getId() + ")";
+                        this.doctorId = authenticatedDoctor.getId();
+
+                        this.clients.put(this.clientKey, this);
+                        this.logger.accept("Zalogowano lekarza: " + this.clientKey + " (" + this.fullName + ")");
+                        this.clientsListUpdater.accept(this.clients);
+
+                        // Send success response with the doctor object
+                        sendMessage(new NetworkMessage(MessageType.DOCTOR_LOGIN_SUCCESS, authenticatedDoctor));
+                    } else {
+                        sendMessage(new NetworkMessage(MessageType.DOCTOR_LOGIN_FAILED, "Invalid email or password"));
+                        logger.accept("Logowanie lekarza nieudane - nieprawidłowy email lub hasło: " + doctorEmail);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    sendMessage(new NetworkMessage(MessageType.DOCTOR_LOGIN_FAILED, e.getMessage()));
+                    logger.accept("Błąd podczas logowania lekarza: " + e.getMessage());
+                }
+                break;
+
             case REGISTER_DOCTOR:
                 Doctor doctor = (Doctor) message.getPayload();
                 try {
@@ -180,9 +212,9 @@ public class ClientHandler implements Runnable {
                 break;
 
             case CHECK_DOCTOR_EMAIL_EXISTS:
-                String doctorEmail = (String) message.getPayload();
+                String emailToCheck = (String) message.getPayload();
                 try {
-                    boolean exists = doctorService.isEmailExists(doctorEmail);
+                    boolean exists = doctorService.isEmailExists(emailToCheck);
                     sendMessage(new NetworkMessage(MessageType.DOCTOR_EMAIL_EXISTS_RESULT, exists));
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -197,20 +229,51 @@ public class ClientHandler implements Runnable {
                 break;
 
             // Patient related messages
+            case PATIENT_LOGIN:
+                String[] patientLoginData = ((String)message.getPayload()).split(":");
+                String patientUsername = patientLoginData[0];
+                String patientPassword = patientLoginData[1];
+
+                try {
+                    Optional<Patient> patientOpt = patientService.login(patientUsername, patientPassword);
+                    if (patientOpt.isPresent()) {
+                        Patient authenticatedPatient = patientOpt.get();
+
+                        // Store client information
+                        this.clientKey = patientUsername;
+                        this.fullName = authenticatedPatient.getUsername();
+
+                        this.clients.put(this.clientKey, this);
+                        this.logger.accept("Zalogowano pacjenta: " + this.clientKey);
+                        this.clientsListUpdater.accept(this.clients);
+
+                        // Send success response with the patient object
+                        sendMessage(new NetworkMessage(MessageType.PATIENT_LOGIN_SUCCESS, authenticatedPatient));
+                    } else {
+                        sendMessage(new NetworkMessage(MessageType.PATIENT_LOGIN_FAILED, "Invalid username or password"));
+                        logger.accept("Logowanie pacjenta nieudane - nieprawidłowa nazwa użytkownika lub hasło: " + patientUsername);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sendMessage(new NetworkMessage(MessageType.PATIENT_LOGIN_FAILED, e.getMessage()));
+                    logger.accept("Błąd podczas logowania pacjenta: " + e.getMessage());
+                }
+                break;
+
             case REGISTER_PATIENT:
                 String[] patientData = ((String) message.getPayload()).split(":");
                 String patientEmail = patientData[0];
-                String patientUsername = patientData[1];
-                String patientPassword = patientData[2];
+                String patientUsernameReg = patientData[1];
+                String patientPasswordReg = patientData[2];
 
                 try {
-                    boolean registered = patientService.register(patientEmail, patientUsername, patientPassword);
+                    boolean registered = patientService.register(patientEmail, patientUsernameReg, patientPasswordReg);
                     if (registered) {
                         sendMessage(new NetworkMessage(MessageType.PATIENT_REGISTERED, null));
-                        logger.accept("Zarejestrowano pacjenta: " + patientUsername);
+                        logger.accept("Zarejestrowano pacjenta: " + patientUsernameReg);
                     } else {
                         sendMessage(new NetworkMessage(MessageType.PATIENT_REGISTER_FAILED, "Username already exists"));
-                        logger.accept("Rejestracja pacjenta nieudana - nazwa użytkownika już istnieje: " + patientUsername);
+                        logger.accept("Rejestracja pacjenta nieudana - nazwa użytkownika już istnieje: " + patientUsernameReg);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -245,7 +308,7 @@ public class ClientHandler implements Runnable {
     public String getFullName() {
         return fullName;
     }
-    
+
     private int extractDoctorIdFromFullName(String fullName) {
         // Przykładowo: "Dr Jan Kowalski (id: 3)"
         if (fullName.contains("(id:")) {
@@ -271,6 +334,4 @@ public class ClientHandler implements Runnable {
         }
 
     }
-
-
 }

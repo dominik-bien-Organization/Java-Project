@@ -23,13 +23,16 @@ public class DoctorService {
     }
 
     public Doctor login(String email, String password) throws SQLException, IOException, InterruptedException {
-        // Login is still handled by the original login message
-        // The server already handles authentication and returns a success/failure message
-        // We don't need to change this method to use a new message type
+        // Use the new DOCTOR_LOGIN message type for authentication
+        NetworkMessage response = client.sendMessageAndWaitForResponse(
+                new NetworkMessage(MessageType.DOCTOR_LOGIN, email + ":" + password),
+                MessageType.DOCTOR_LOGIN_SUCCESS);
 
-        // For now, we'll continue to use the database directly for login
-        // This will be replaced with server-side authentication in a future update
-        return new com.example.clinicapp.service.DoctorService().login(email, password);
+        if (response == null) {
+            throw new IOException("No response from server");
+        }
+
+        return (Doctor) response.getPayload();
     }
 
     public boolean isEmailExists(String email) throws SQLException, IOException, InterruptedException {

@@ -63,35 +63,25 @@ public class DoctorPageController implements Initializable {
             return;
         }
 
+        if (clinicClient == null || !clinicClient.isConnected()) {
+            alert.errorMessage("Brak połączenia z serwerem.");
+            return;
+        }
+
         try {
             Doctor doctor = doctorService.login(email, password);
             if (doctor != null) {
                 alert.successMessage("Logowanie wykonano pomyślnie!");
-
-
-                if (clinicClient != null && clinicClient.isConnected()) {
-                    try {
-                        NetworkMessage response = clinicClient.sendMessageAndWaitForResponse(
-                                new NetworkMessage(MessageType.LOGIN, doctor.getEmail() + ":" + doctor.getPassword() + ":"),
-                                MessageType.LOGIN);
-
-                        if (response == null) {
-                            alert.errorMessage("Nie otrzymano odpowiedzi od serwera w wyznaczonym czasie.");
-                        }
-                    } catch (IOException e) {
-                        alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
-                    } catch (InterruptedException e) {
-                        alert.errorMessage("Operacja została przerwana: " + e.getMessage());
-                    }
-                } else {
-                    alert.errorMessage("Brak połączenia z serwerem.");
-                }
-
                 openDoctorDashboard(doctor, clinicClient);
-
             } else {
                 alert.errorMessage("Nieprawidłowa nazwa użytkownika lub hasło");
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            alert.errorMessage("Nie udało się wysłać wiadomości do serwera: " + e.getMessage());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            alert.errorMessage("Operacja została przerwana: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             alert.errorMessage("Błąd podczas logowania: " + e.getMessage());

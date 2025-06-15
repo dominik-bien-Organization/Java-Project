@@ -21,6 +21,9 @@ public enum MessageType {
     ALL_DOCTORS_LIST,
     CHECK_DOCTOR_EMAIL_EXISTS,
     DOCTOR_EMAIL_EXISTS_RESULT,
+    DOCTOR_LOGIN,
+    DOCTOR_LOGIN_SUCCESS,
+    DOCTOR_LOGIN_FAILED,
 
     // Patient related messages
     REGISTER_PATIENT,
@@ -28,6 +31,9 @@ public enum MessageType {
     PATIENT_REGISTER_FAILED,
     GET_ALL_PATIENTS,
     ALL_PATIENTS_LIST,
+    PATIENT_LOGIN,
+    PATIENT_LOGIN_SUCCESS,
+    PATIENT_LOGIN_FAILED,
 
     // Recipe related messages
     GET_RECIPES_FOR_PATIENT,

@@ -22,13 +22,21 @@ public class PatientService {
     }
 
     public Optional<Patient> login(String username, String password) {
-        // Login is still handled by the original login message
-        // The server already handles authentication and returns a success/failure message
-        // We don't need to change this method to use a new message type
-        
-        // For now, we'll continue to use the database directly for login
-        // This will be replaced with server-side authentication in a future update
-        return new com.example.clinicapp.service.PatientService().login(username, password);
+        try {
+            // Use the new PATIENT_LOGIN message type for authentication
+            NetworkMessage response = client.sendMessageAndWaitForResponse(
+                    new NetworkMessage(MessageType.PATIENT_LOGIN, username + ":" + password),
+                    MessageType.PATIENT_LOGIN_SUCCESS);
+
+            if (response == null) {
+                return Optional.empty();
+            }
+
+            return Optional.of((Patient) response.getPayload());
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 
     public List<Patient> getAllPatients() {
@@ -36,11 +44,11 @@ public class PatientService {
             NetworkMessage response = client.sendMessageAndWaitForResponse(
                     new NetworkMessage(MessageType.GET_ALL_PATIENTS, null),
                     MessageType.ALL_PATIENTS_LIST);
-            
+
             if (response == null) {
                 return new ArrayList<>();
             }
-            
+
             return (List<Patient>) response.getPayload();
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -54,7 +62,7 @@ public class PatientService {
             NetworkMessage response = client.sendMessageAndWaitForResponse(
                     new NetworkMessage(MessageType.REGISTER_PATIENT, payload),
                     MessageType.PATIENT_REGISTERED);
-            
+
             return response != null;
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
