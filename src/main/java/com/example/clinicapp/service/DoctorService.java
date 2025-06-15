@@ -22,13 +22,13 @@ public class DoctorService {
 
             try (ResultSet result = prepare.executeQuery()) {
                 if (result.next()) {
-                    return new Doctor(
-                            result.getInt("doctorId"),
-                            result.getString("fullname"),
-                            result.getString("email"),
-                            result.getString("password"),
-                            result.getDate("date")
-                    );
+                    return new Doctor.Builder()
+                            .id(result.getInt("doctorId"))
+                            .fullname(result.getString("fullname"))
+                            .email(result.getString("email"))
+                            .password(result.getString("password"))
+                            .date(result.getDate("date"))
+                            .build();
                 }
             }
         }
@@ -75,14 +75,14 @@ public class DoctorService {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Doctor doctor = new Doctor(
-                        rs.getInt("doctorId"),
-                        rs.getString("fullname"),
-                        rs.getString("email"),
-                        rs.getString("password"),
-                        rs.getDate("date")
+                doctors.add(new Doctor.Builder()
+                        .id(rs.getInt("doctorId"))
+                        .fullname(rs.getString("fullname"))
+                        .email(rs.getString("email"))
+                        .password(rs.getString("password"))
+                        .date(rs.getDate("date"))
+                        .build()
                 );
-                doctors.add(doctor);
             }
 
         } catch (SQLException e) {

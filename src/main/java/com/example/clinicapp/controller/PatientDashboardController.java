@@ -1,10 +1,10 @@
 package com.example.clinicapp.controller;
 
 import com.example.clinicapp.files.FileHelper;
+import com.example.clinicapp.interfaces.IPatient;
 import com.example.clinicapp.model.Doctor;
 import com.example.clinicapp.network.*;
 import com.example.clinicapp.service.DoctorService;
-
 import com.example.clinicapp.service.RecipeService;
 import com.example.clinicapp.util.AlertMessage;
 import javafx.application.Platform;
@@ -17,20 +17,16 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-
+import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.URL;
-import java.nio.file.Files;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.ResourceBundle;
-
-import com.example.clinicapp.interfaces.IPatient;
-import javafx.scene.shape.Path;
-import javafx.stage.Stage;
 
 public class PatientDashboardController implements Initializable {
 
@@ -85,6 +81,20 @@ public class PatientDashboardController implements Initializable {
         loadAvailableHours();
         initializeRecipeTable();
         buttonDownloadRecipes.setOnAction(e -> handleDownloadRecipes());
+
+        var reloader = new Thread(this::reloadRecipies);
+        reloader.start();
+    }
+
+    public void reloadRecipies() {
+        while (true) {
+            try {
+                Thread.sleep(Duration.ofSeconds(1));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            loadRecipesForPatient();
+        }
     }
 
     private void loadAvailableHours() {

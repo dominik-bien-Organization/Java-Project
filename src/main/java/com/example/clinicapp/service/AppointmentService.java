@@ -3,7 +3,10 @@ package com.example.clinicapp.service;
 import com.example.clinicapp.database.DatabaseConnector;
 import com.example.clinicapp.network.Appointment;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
