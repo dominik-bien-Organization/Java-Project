@@ -1,0 +1,7 @@
+Recepty pacjenta: test1234@gmail.com
+Data pobrania: 2025-06-15T10:25:37.317867400
+====================================
+Lekarz: JAN KOWALSKI
+Opis: recepta
+Data wystawienia: 2025-06-15
+------------------------------------

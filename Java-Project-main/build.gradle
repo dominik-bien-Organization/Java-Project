@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group 'com.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = '23'
+targetCompatibility = '23'
+
+application {
+    mainClass = 'com.example.clinicapp.MainApp'
+}
+
+javafx {
+    version = '24.0.1'
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+dependencies {
+    implementation 'mysql:mysql-connector-java:8.0.33'
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.10.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.10.2"
+}
+
+tasks.withType(JavaExec) {
+    jvmArgs = [
+            '--module-path', 'C:/javaFx/javafx-sdk-24.0.1/lib',
+            '--add-modules', 'javafx.controls,javafx.fxml',
+            '--add-opens=javafx.base/com.sun.javafx.event=ALL-UNNAMED',
+            '--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED'
+    ]
+}
+
+task runServer(type: JavaExec) {
+    mainClass = 'com.example.clinicapp.server.ServerMainApp'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+}
+
+task runClient(type: JavaExec) {
+    mainClass = 'com.example.clinicapp.MainApp'
+    classpath = sourceSets.main.runtimeClasspath
+}
