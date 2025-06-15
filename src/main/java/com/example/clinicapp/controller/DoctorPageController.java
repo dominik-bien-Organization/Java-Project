@@ -187,7 +187,6 @@ public class DoctorPageController implements Initializable {
         }
     }
 
-
     public void registerClear() {
         register_email.clear();
         register_fullName.clear();
