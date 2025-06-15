@@ -23,14 +23,14 @@ public class PatientService {
 
             try (ResultSet result = prepare.executeQuery()) {
                 if (result.next()) {
-                    Patient patient = new Patient(
-                            result.getInt("id"),
-                            result.getString("email"),
-                            result.getString("username"),
-                            result.getString("password"),
-                            result.getDate("date")
+                    return Optional.of(new Patient.Builder()
+                            .id(result.getInt("id"))
+                            .email(result.getString("email"))
+                            .username(result.getString("username"))
+                            .password(result.getString("password"))
+                            .date(result.getDate("date"))
+                            .build()
                     );
-                    return Optional.of(patient);
                 }
             }
         } catch (Exception e) {
@@ -49,14 +49,14 @@ public class PatientService {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                Patient patient = new Patient(
-                        rs.getInt("id"),
-                        rs.getString("username"),
-                        rs.getString("email"),
-                        rs.getString("password"),
-                        rs.getDate("date")
+                patients.add(new Patient.Builder()
+                        .id(rs.getInt("id"))
+                        .email(rs.getString("email"))
+                        .username(rs.getString("username"))
+                        .password(rs.getString("password"))
+                        .date(rs.getDate("date"))
+                        .build()
                 );
-                patients.add(patient);
             }
 
         } catch (Exception e) {

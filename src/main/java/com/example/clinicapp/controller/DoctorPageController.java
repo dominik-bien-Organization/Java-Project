@@ -147,7 +147,7 @@ public class DoctorPageController implements Initializable {
                 return;
             }
 
-            Doctor newDoctor = new Doctor(0, fullname, email, password, null);
+            Doctor newDoctor = new Doctor.Builder().id(0).fullname(fullname).email(email).password(password).build();
             doctorService.register(newDoctor);
 
             alert.successMessage("Rejestracja wykonana pomyślnie!");

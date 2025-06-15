@@ -8,7 +8,7 @@ public abstract class User {
     protected String password;
     protected Date date;
 
-    public User(int id, String email, String password, Date date) {
+    protected User(int id, String email, String password, Date date) {
         this.id = id;
         this.email = email;
         this.password = password;

@@ -6,7 +6,6 @@ import com.example.clinicapp.network.*;
 import com.example.clinicapp.service.DoctorService;
 import com.example.clinicapp.service.PatientService;
 import com.example.clinicapp.util.AlertMessage;
-
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -25,6 +24,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -58,8 +58,6 @@ public class DoctorDashboardController implements Initializable {
         Platform.runLater(() -> labelDoctorname.setText(doctor.getFullname()));
         sendGetAppointmentsIfReady();
     }
-
-
 
     public void setClinicClient(ClinicClient clinicClient) {
         this.clinicClient = clinicClient;
@@ -157,6 +155,19 @@ public class DoctorDashboardController implements Initializable {
 
         loadPatients();
 
+        var reloader = new Thread(this::reloadAppointments);
+        reloader.start();
+    }
+
+    public void reloadAppointments() {
+        while (true) {
+            try {
+                Thread.sleep(Duration.ofSeconds(1));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            sendGetAppointmentsIfReady();
+        }
     }
 
     private void loadPatients() {

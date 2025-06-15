@@ -1,21 +1,23 @@
 package com.example.clinicapp.server;
 
+import com.example.clinicapp.database.DatabaseInitializer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class ServerMainApp extends Application {
     public void start(Stage stage) throws Exception {
+        DatabaseInitializer.initializeDatabase();
+
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("server-view.fxml"));
 
-        Scene scene = new Scene((Parent)fxmlLoader.load(), (double)600.0F, (double)400.0F);
+        Scene scene = new Scene(fxmlLoader.load(), 600.0F, 400.0F);
         stage.setTitle("Panel Serwera Kliniki");
         stage.setScene(scene);
         stage.show();
-        stage.setOnCloseRequest((event) -> {
-            ServerController controller = (ServerController)fxmlLoader.getController();
+        stage.setOnCloseRequest((_) -> {
+            ServerController controller = fxmlLoader.getController();
             controller.shutdownServer();
             System.exit(0);
         });

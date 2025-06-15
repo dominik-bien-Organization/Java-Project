@@ -1,6 +1,7 @@
 package com.example.clinicapp.controller;
 
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -20,6 +21,17 @@ public class LoginChoiceController {
     public void initialize() {
         userComboBox.getItems().clear();
         userComboBox.getItems().addAll(USER_TYPES);
+        userComboBox.setOnAction(new EventHandler<>() {
+            @Override
+            public void handle(ActionEvent event) {
+                try {
+                    handleUserSelection(event);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("selected user type: " + userComboBox.getValue());
+            }
+        });
     }
 
     @FXML
