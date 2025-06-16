@@ -15,7 +15,7 @@ sourceCompatibility = '23'
 targetCompatibility = '23'
 
 application {
-    mainClass = 'com.example.clinicapp.MainApp'
+    mainClass = 'com.example.clinicapp.client.MainApp'
 }
 
 javafx {
@@ -39,12 +39,12 @@ tasks.withType(JavaExec) {
 }
 
 task runServer(type: JavaExec) {
-    mainClass = 'com.example.clinicapp.server.ServerMainApp'
+    mainClass = 'com.example.clinicapp.server.MainApp'
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in
 }
 
 task runClient(type: JavaExec) {
-    mainClass = 'com.example.clinicapp.MainApp'
+    mainClass = 'com.example.clinicapp.client.MainApp'
     classpath = sourceSets.main.runtimeClasspath
 }
