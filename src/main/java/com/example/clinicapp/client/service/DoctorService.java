@@ -1,15 +1,17 @@
 package com.example.clinicapp.client.service;
 
-import com.example.clinicapp.model.Doctor;
-import com.example.clinicapp.network.ClinicClient;
-import com.example.clinicapp.network.MessageType;
-import com.example.clinicapp.network.NetworkMessage;
+import com.example.clinicapp.common.model.Doctor;
+import com.example.clinicapp.common.model.Patient;
+import com.example.clinicapp.common.network.ClinicClient;
+import com.example.clinicapp.common.network.MessageType;
+import com.example.clinicapp.common.network.NetworkMessage;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Client-side service for doctor-related operations.
@@ -22,17 +24,22 @@ public class DoctorService {
         this.client = client;
     }
 
-    public Doctor login(String email, String password) throws SQLException, IOException, InterruptedException {
-        // Use the new DOCTOR_LOGIN message type for authentication
-        NetworkMessage response = client.sendMessageAndWaitForResponse(
-                new NetworkMessage(MessageType.DOCTOR_LOGIN, email + ":" + password),
-                MessageType.DOCTOR_LOGIN_SUCCESS);
+    public Optional<Doctor> login(String email, String password) throws SQLException, IOException, InterruptedException {
+        try {
+            // Use the new DOCTOR_LOGIN message type for authentication
+            NetworkMessage response = client.sendMessageAndWaitForResponse(
+                    new NetworkMessage(MessageType.DOCTOR_LOGIN, email + ":" + password),
+                    new MessageType[]{MessageType.DOCTOR_LOGIN_SUCCESS, MessageType.DOCTOR_LOGIN_FAILED}, 5000);
 
-        if (response == null) {
-            throw new IOException("No response from server");
+            if (response.getType().equals(MessageType.DOCTOR_LOGIN_FAILED)) {
+                return Optional.empty();
+            }
+
+            return Optional.of((Doctor) response.getPayload());
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return Optional.empty();
         }
-
-        return (Doctor) response.getPayload();
     }
 
     public boolean isEmailExists(String email) throws SQLException, IOException, InterruptedException {

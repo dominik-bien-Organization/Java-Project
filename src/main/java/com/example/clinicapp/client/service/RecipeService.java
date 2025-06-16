@@ -1,9 +1,9 @@
 package com.example.clinicapp.client.service;
 
-import com.example.clinicapp.network.ClinicClient;
-import com.example.clinicapp.network.MessageType;
-import com.example.clinicapp.network.NetworkMessage;
-import com.example.clinicapp.network.Recipe;
+import com.example.clinicapp.common.network.ClinicClient;
+import com.example.clinicapp.common.network.MessageType;
+import com.example.clinicapp.common.network.NetworkMessage;
+import com.example.clinicapp.common.network.Recipe;
 
 import java.io.IOException;
 import java.util.ArrayList;

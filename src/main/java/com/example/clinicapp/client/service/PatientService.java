@@ -1,9 +1,9 @@
 package com.example.clinicapp.client.service;
 
-import com.example.clinicapp.model.Patient;
-import com.example.clinicapp.network.ClinicClient;
-import com.example.clinicapp.network.MessageType;
-import com.example.clinicapp.network.NetworkMessage;
+import com.example.clinicapp.common.model.Patient;
+import com.example.clinicapp.common.network.ClinicClient;
+import com.example.clinicapp.common.network.MessageType;
+import com.example.clinicapp.common.network.NetworkMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,9 +26,9 @@ public class PatientService {
             // Use the new PATIENT_LOGIN message type for authentication
             NetworkMessage response = client.sendMessageAndWaitForResponse(
                     new NetworkMessage(MessageType.PATIENT_LOGIN, username + ":" + password),
-                    MessageType.PATIENT_LOGIN_SUCCESS);
+                    new MessageType[]{MessageType.PATIENT_LOGIN_SUCCESS, MessageType.PATIENT_LOGIN_FAILED}, 5000);
 
-            if (response == null) {
+            if (response.getType().equals(MessageType.PATIENT_LOGIN_FAILED)) {
                 return Optional.empty();
             }
 
